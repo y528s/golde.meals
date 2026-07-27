@@ -559,3 +559,7 @@ input, textarea, select { font: inherit; color: inherit; }
   font-family: var(--serif); font-size: 17px; line-height: 1.65; color: var(--ink);
   white-space: pre-wrap;
 }
+
+/* a go-to meal that doesn't quite suit tonight — dimmed, never disabled */
+.chip.faded { opacity: .5; border-style: dashed; }
+.chip.faded:hover { opacity: .85; }

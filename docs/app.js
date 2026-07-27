@@ -61,6 +61,7 @@
               dish: "Chicken soup with lokshen, and a roast chicken with lemon and potatoes",
               at: "4:30", mine: false, delivered: false,
               recipeAsked: true,
+              recipeScope: "book",
               recipe: "No measurements, I never use them. A whole chicken, cold water to cover, " +
                 "bring it up slow and skim the top. Carrots, celery, a parsnip, one onion with the " +
                 "skin on for colour. Dill at the end, never at the start. Salt more than you think. " +
@@ -125,6 +126,18 @@
         { id: "c7", name: "Bracha Levi",      phone: "+1 (555) 014-2019", channel: "whatsapp", optedIn: true },
         { id: "c8", name: "Tzippy Marcus",    phone: "Not asked yet",     channel: null,       optedIn: false }
       ],
+
+      /* What this cook has brought before. It travels with the person, not the
+         train — she's helped other families and Golde remembers. Deliberately
+         seeded so a returning cook is what you see. */
+      cook: {
+        goTo: [
+          "A big pot of chicken soup with lokshen",
+          "Baked ziti with garlic bread",
+          "Potato and leek soup with a challah",
+          "Shepherd's pie"
+        ]
+      },
 
       messages: [
         {
@@ -263,6 +276,15 @@
     };
     list.push(c);
     return c;
+  }
+
+  /* Most recent first, no duplicates, and capped — a go-to list of twenty
+     go-to meals is just a menu nobody reads. */
+  function rememberDish(dish) {
+    var list = state.data.cook.goTo || (state.data.cook.goTo = []);
+    var key = dish.trim().toLowerCase();
+    var without = list.filter(function (d) { return d.trim().toLowerCase() !== key; });
+    state.data.cook.goTo = [dish.trim()].concat(without).slice(0, 6);
   }
 
   function findContact(id) {
@@ -1223,7 +1245,10 @@
       kept.forEach(function (x) {
         h += '<div class="fact"><dt>' + esc(x.slot.by.split(" ")[0]) + "</dt><dd>" +
           '<button class="mini-link" data-act="see-recipe" data-slot="' + x.slot.id + '">' +
-          esc(cap(shortDish(x.slot.dish))) + "</button></dd></div>";
+          esc(cap(shortDish(x.slot.dish))) + "</button>" +
+          (x.slot.recipeScope === "book"
+            ? ' <span class="badge quiet">shared for the book</span>'
+            : "") + "</dd></div>";
       });
       h += "</div>";
     }
@@ -1329,6 +1354,27 @@
       "</div></div>";
 
     if (mode === "cook") {
+      var goTo = (state.data.cook.goTo || []);
+      if (goTo.length) {
+        var judged = goTo.map(function (dish) {
+          return { dish: dish, clash: runChecks(s.dayId, dish)[0] || null };
+        });
+        var awkward = judged.filter(function (j) { return j.clash; }).length;
+        body += '<div class="f"><span class="f-legend">Your usual</span>';
+        if (awkward) {
+          body += '<div class="hint">' +
+            esc("I've faded the " + (awkward === 1 ? "one that doesn't" : awkward + " that don't") +
+                " quite suit " + dayName(day.iso) + ". Tap " + plural(awkward, "it", "them") +
+                " anyway if you like — I'm only noticing.") +
+            "</div>";
+        }
+        body += '<div class="chips">' + judged.map(function (j, i) {
+          return '<button class="chip small' + (j.clash ? " faded" : "") + '" data-act="use-goto" ' +
+            'data-i="' + i + '"' + (j.clash ? ' title="' + esc(j.clash.text) + '"' : "") + ">" +
+            esc(j.dish) + "</button>";
+        }).join("") + "</div></div>";
+      }
+
       body += '<div class="f"><label for="claim-dish">What are you bringing?</label>' +
         '<div class="hint">However you\'d say it out loud. “A big pot of soup” is a fine answer.</div>' +
         '<textarea id="claim-dish" placeholder="A pot of chicken soup and a challah">' +
@@ -1654,7 +1700,17 @@
       'Nobody needs grams.</p>' +
       '<div class="f"><label for="recipe-text">' + esc(cap(shortDish(loc.slot.dish))) + "</label>" +
       '<textarea id="recipe-text" rows="8" placeholder="A whole chicken, cold water to cover, ' +
-        'bring it up slow and skim the top…">' + esc(state.form.recipe || "") + "</textarea></div>";
+        'bring it up slow and skim the top…">' + esc(state.form.recipe || "") + "</textarea></div>" +
+
+      '<div class="f"><span class="f-legend">Who may have it?</span>' +
+        '<div class="hint">Sarah either way. The second one means it could turn up in the ' +
+        'neighbourhood book one day, with your name on it.</div>' +
+        '<div class="chips">' +
+          '<button class="chip small" data-act="set-recipe-scope" data-scope="private" ' +
+            'aria-pressed="' + (state.form.recipeScope !== "book") + '">Just Sarah</button>' +
+          '<button class="chip small" data-act="set-recipe-scope" data-scope="book" ' +
+            'aria-pressed="' + (state.form.recipeScope === "book") + '">Sarah, and the book</button>' +
+        "</div></div>";
     return sheetShell("For Sarah", esc(dayName(loc.day.iso) + "'s dinner"), body,
       '<button class="btn block" data-act="save-recipe">Send it to her</button>' +
       '<button class="btn block quiet" data-act="close-sheet">Not just now</button>');
@@ -1808,6 +1864,7 @@
     /* The signup pushes a record into the platform. This is where a stranger
        becomes someone Golde is allowed to write to, and by which route. */
     upsertContact(name, channel, (f.contact || "").trim());
+    if (kind === "meal") rememberDish(dish);
     if (channel === "calendar") calendarFile(day, slot);
 
     state.sheet = null;
@@ -2305,6 +2362,14 @@
     },
     "set-mode": function (el) { state.form.mode = el.getAttribute("data-mode"); render(); },
     "set-kind": function (el) { state.form.kind = el.getAttribute("data-kind"); render(); },
+    "use-goto": function (el) {
+      var i = parseInt(el.getAttribute("data-i"), 10);
+      var dish = (state.data.cook.goTo || [])[i];
+      if (dish == null) return;
+      state.form.dish = dish;
+      state.form.mode = "cook";
+      render();
+    },
     "set-channel": function (el) {
       state.form.channel = el.getAttribute("data-channel");
       state.form.contact = "";
@@ -2365,8 +2430,13 @@
       toast("Passed along. No pressure on them at all.");
     },
 
+    "set-recipe-scope": function (el) {
+      state.form.recipeScope = el.getAttribute("data-scope");
+      render();
+    },
+
     "write-recipe": function (el) {
-      state.form = { recipe: "" };
+      state.form = { recipe: "", recipeScope: "private" };
       openSheet("recipe", { slotId: el.getAttribute("data-slot") });
     },
 
@@ -2379,11 +2449,16 @@
         return;
       }
       loc.slot.recipe = text;
+      loc.slot.recipeScope = state.form.recipeScope === "book" ? "book" : "private";
       loc.slot.recipeDeclined = false;
       state.sheet = null;
       goldeSays([
         "I've given Sarah the recipe. She'll have it forever now, and every time she makes it " +
-          "she'll think of you. That's not nothing."
+          "she'll think of you. That's not nothing.",
+        loc.slot.recipeScope === "book"
+          ? "And I've kept a copy for the neighbourhood book, with your name on it. Nothing goes " +
+            "in without your say-so — that was your say-so."
+          : "Just for her, as you said. It goes nowhere else."
       ]);
       goto("chat");
     },
