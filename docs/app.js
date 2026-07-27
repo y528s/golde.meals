@@ -64,7 +64,8 @@
               recipeScope: "book",
               recipe: "No measurements, I never use them. A whole chicken, cold water to cover, " +
                 "bring it up slow and skim the top. Carrots, celery, a parsnip, one onion with the " +
-                "skin on for colour. Dill at the end, never at the start. Salt more than you think. " +
+                "skin left on, it darkens the pot. Dill at the end, never at the start. Salt " +
+                "more than you think. " +
                 "Lokshen cooked separate or they drink the whole pot." },
             { id: "s2", filled: true, kind: "groceries", by: "Yael Fried",
               dish: "A grocery drop — milk, eggs, coffee, fruit, and a real challah from the bakery",
@@ -474,7 +475,7 @@
     }
 
     /* --- variety across adjacent days -------------------------------------- */
-    var cat = dishCategory(dish);
+    var cat = isQuiet() ? null : dishCategory(dish);
     if (cat && day) {
       var idx = state.data.days.indexOf(day);
       var clashes = [];
@@ -545,6 +546,7 @@
 
   /* Seeded variety clash shown on the board itself, unprompted. */
   function boardVarietyNote() {
+    if (isQuiet()) return null;
     var days = state.data.days;
     for (var i = 1; i < days.length; i++) {
       var prev = days[i - 1], cur = days[i];
@@ -744,15 +746,27 @@
     return h;
   }
 
+  /* A shiva and a new baby are not the same event and must not sound the same.
+     Everything Golde says routes through a register: bright, tender or quiet.
+     Getting this wrong is the most damaging thing this product could do. */
+  var OCCASIONS = {
+    "new-baby":         { text: "a new baby",            tone: "bright" },
+    "moving-in":        { text: "moving in",             tone: "bright" },
+    "new-to-community": { text: "new to the community",  tone: "bright" },
+    "just-because":     { text: "just because",          tone: "bright" },
+    "recovery":         { text: "recovery from surgery", tone: "tender" },
+    "shiva":            { text: "a shiva",               tone: "quiet"  }
+  };
+
+  function tone() {
+    var o = OCCASIONS[state.data.train.occasion];
+    return o ? o.tone : "bright";
+  }
+  function isQuiet() { return tone() === "quiet"; }
+  function byTone(map) { return map[tone()] || map.bright; }
+
   function occasionText(key) {
-    return ({
-      "new-baby": "a new baby",
-      "shiva": "a shiva",
-      "recovery": "recovery from surgery",
-      "moving-in": "moving in",
-      "new-to-community": "new to the community",
-      "just-because": "just because"
-    })[key] || "a new baby";
+    return (OCCASIONS[key] || OCCASIONS["new-baby"]).text;
   }
 
   function statsRow() {
@@ -930,7 +944,11 @@
 
     var lede;
     if (t.wrapped) {
-      lede = "That's a wrap. Every one of you showed up.";
+      lede = byTone({
+        bright: "That's a wrap. Every one of you showed up.",
+        tender: "That's the end of it. They're on their feet again, thanks to you.",
+        quiet:  "The shiva is over. They'll be alright, slowly."
+      });
     } else if (t.paused) {
       lede = "The Cohens have enough for now. Don't cook — I'll wave you back in when they're ready.";
     } else if (!filledSlots().length) {
@@ -938,8 +956,14 @@
     } else if (!open.length) {
       lede = "Every night is spoken for. I'm very pleased with all of you.";
     } else {
-      lede = listify(open.map(function (x) { return dayName(x.iso); })) + " still " +
-             plural(open.length, "has", "have") + " nobody. Take whichever fits your week.";
+      var days = listify(open.map(function (x) { return dayName(x.iso); }));
+      var still = days + " still " + plural(open.length, "has", "have") + " nobody. ";
+      lede = byTone({
+        bright: still + "Take whichever fits your week.",
+        tender: still + "Take whichever fits your week. Plain and warm is exactly right.",
+        quiet:  "There's nothing anybody can say. So we cook. " + still +
+                "Nothing has to be special this week."
+      });
     }
     h += '<div class="golde-note"><span class="gn-mark">golde.</span><span>' + esc(lede) + "</span></div>";
 
@@ -1726,6 +1750,53 @@
       '<button class="btn block" data-act="close-sheet">Keep it</button>');
   };
 
+  /* Switching occasion in the demo swaps the household too, otherwise you get a
+     shiva for a family who just had a baby and the point is lost. */
+  var OCCASION_SETUPS = {
+    "new-baby": { family: "the Cohens", contact: "Sarah & Dovid Cohen", household: 5,
+      householdNote: "two little ones, and a brand new baby girl",
+      opening: [
+        "Mazal tov — Sarah and Dovid Cohen had a baby girl on Motzei Shabbos. 💕 Mother and baby " +
+          "are home and everybody is tired in the very best way.",
+        "Nobody in that house should be thinking about dinner this week. A pot of something warm " +
+          "is plenty."
+      ] },
+    "shiva": { family: "the Levys", contact: "Malka Levy", household: 9,
+      householdNote: "and there's a minyan most evenings, so cook generously",
+      opening: [
+        "Malka Levy's mother passed away on Sunday. The family are sitting shiva until Thursday.",
+        "There's a minyan most evenings, so the house is full from six. I've put a week of dinners " +
+          "together. Nothing fancy — there's no room for fancy this week, and nobody wants it."
+      ] },
+    "recovery": { family: "the Steins", contact: "Yehuda Stein", household: 4,
+      householdNote: "and he can't stand at a stove for another fortnight",
+      opening: [
+        "Yehuda Stein had his surgery on Tuesday and he's home, thank God. He's mending, he just " +
+          "can't stand at a stove for another fortnight.",
+        "So: dinners. Plain and warm is exactly right — nobody there is after a production."
+      ] },
+    "moving-in": { family: "the Roths", contact: "Ayala Roth", household: 6,
+      householdNote: "and the kitchen is still in boxes",
+      opening: [
+        "The Roths moved in on Sunday and their kitchen is still in boxes.",
+        "A few dinners while they dig themselves out, and they'll know they landed somewhere good."
+      ] },
+    "new-to-community": { family: "the Adlers", contact: "Nomi Adler", household: 3,
+      householdNote: "and they don't know a soul here yet",
+      opening: [
+        "The Adlers have just moved here and they don't know a soul yet.",
+        "Bring them dinner and stay five minutes at the door. The dinner is the excuse — the five " +
+          "minutes is the point."
+      ] },
+    "just-because": { family: "the Bergers", contact: "Faigy Berger", household: 5,
+      householdNote: "and it's been a long month, that's all",
+      opening: [
+        "Nothing has happened to the Bergers. It's been a long month, that's all, and Faigy sounded " +
+          "tired on the phone.",
+        "You don't need a reason to feed somebody. A few dinners, quietly."
+      ] }
+  };
+
   /* --- demo controls -------------------------------------------------------- */
 
   SHEETS.demo = function () {
@@ -1738,6 +1809,15 @@
         return '<button class="role-card" data-act="set-role" data-role="' + k + '" aria-pressed="' +
           (state.role === k) + '"><b>' + esc(ROLES[k].label) + "</b><span>" + esc(ROLES[k].blurb) +
           "</span></button>";
+      }).join("") + "</div></div>";
+
+    body += '<div class="f"><span class="f-legend">The occasion</span>' +
+      '<div class="hint">She does not sound the same at a shiva as she does at a birth. ' +
+      'Switch it and read the board again.</div>' +
+      '<div class="chips">' + Object.keys(OCCASIONS).map(function (k) {
+        return '<button class="chip small" data-act="set-occasion" data-occasion="' + k +
+          '" aria-pressed="' + (state.data.train.occasion === k) + '">' +
+          esc(cap(OCCASIONS[k].text)) + "</button>";
       }).join("") + "</div></div>";
 
     body += '<div class="f"><span class="f-legend">Jump ahead</span>' +
@@ -1874,7 +1954,14 @@
     say("you", "I'll take " + dayName(day.iso) + " — " + lowerFirst(dish));
 
     var lines = [];
-    lines.push(dayName(day.iso) + "'s yours. Thank you, sweetheart.");
+    lines.push(byTone({
+      bright: dayName(day.iso) + "'s yours. Thank you, sweetheart.",
+      tender: dayName(day.iso) + "'s yours. Thank you, sweetheart.",
+      quiet:  dayName(day.iso) + "'s yours. Thank you."
+    }));
+    if (isQuiet()) {
+      lines.push("You don't have to say anything at the door. Being there is the thing.");
+    }
 
     var when = day.candle
       ? "It's the Shabbos one — at the door by " + day.to + ", before candles at " + day.candle + "."
@@ -1987,11 +2074,22 @@
     var open = openDays();
     if (!open.length) return;
     var names = listify(open.map(function (x) { return dayName(x.iso); }));
-    var lines = [
-      "Hello again, everybody. Not nagging — noticing.",
-      names + " " + plural(open.length, "is", "are") + " still open for the Cohens. " +
-        "If one of them fits your week, wonderful. If not, no hard feelings and nobody's counting."
-    ];
+    var lines = byTone({
+      bright: [
+        "Hello again, everybody. Not nagging — noticing.",
+        names + " " + plural(open.length, "is", "are") + " still open for " + t.recipientFamily +
+          ". If one of them fits your week, wonderful. If not, no hard feelings and nobody's counting."
+      ],
+      tender: [
+        "Quietly, everybody.",
+        names + " " + plural(open.length, "is", "are") + " still open for " + t.recipientFamily +
+          ". Only if it fits your week."
+      ],
+      quiet: [
+        names + " " + plural(open.length, "is", "are") + " still open at " + t.recipientFamily + ".",
+        "No explanation needed either way. Nobody is keeping a list."
+      ]
+    });
     var friday = open.filter(function (x) { return x.candle; })[0];
     if (friday) {
       lines.push("Friday's the Shabbos one — it has to be at the door by " + friday.to +
@@ -2007,16 +2105,31 @@
     var t = state.data.train;
     t.wrapped = true;
     var n = filledSlots().length;
-    goldeSays([
-      "That's a wrap, everybody.",
-      n + " " + plural(n, "delivery", "deliveries") + " and one very grateful family. Sarah asked me to tell " +
-        "you she cried a little at the chicken soup, which I think we all saw coming.",
-      "You didn't just feed them. You made a hard, beautiful week softer. That's the whole thing."
-    ]);
-    goldeSays([
-      "If this made it easier, you're welcome to chip in so it stays free for the next family. " +
-        "Only if you want to. I mean that — I'd never ask twice."
-    ], { card: "donation" });
+    goldeSays(byTone({
+      bright: [
+        "That's a wrap, everybody.",
+        n + " " + plural(n, "delivery", "deliveries") + " and one very grateful family. Sarah asked me " +
+          "to tell you she cried a little at the chicken soup, which I think we all saw coming.",
+        "You didn't just feed them. You made a hard, beautiful week softer. That's the whole thing."
+      ],
+      tender: [
+        n + " " + plural(n, "delivery", "deliveries") + ", and they're back on their feet.",
+        "They didn't have to think about dinner once while they were mending. That was you."
+      ],
+      quiet: [
+        n + " " + plural(n, "delivery", "deliveries") + " over the week of the shiva.",
+        "Nobody in that house cooked, and nobody in that house was alone at dinnertime. " +
+          "They'll remember exactly who was at the door."
+      ]
+    }));
+
+    /* No money is asked for at a shiva. Not softened, not once — not asked. */
+    if (!isQuiet()) {
+      goldeSays([
+        "If this made it easier, you're welcome to chip in so it stays free for the next family. " +
+          "Only if you want to. I mean that — I'd never ask twice."
+      ], { card: "donation" });
+    }
     state.sheet = null;
     goto("chat");
   }
@@ -2089,7 +2202,11 @@
       (t.allergies.indexOf("no-nuts") > -1 ? "No nuts. " : "") +
       t.address + "."
     );
-    lines.push("You've got this.");
+    lines.push(byTone({
+      bright: "You've got this.",
+      tender: "You've got this.",
+      quiet:  "Just the food. Nothing else is required of you."
+    }));
 
     if (slot.channel && slot.channel !== "whatsapp") {
       lines.unshift("(" + cap(channelDef(slot.channel).short) + ", as you asked.)");
@@ -2564,6 +2681,34 @@
         "I won't ask again, and I won't make a speech about it."]);
       goto("chat");
       toast("Thank you, sweetheart. (Nothing was actually charged — this is a prototype.)");
+    },
+
+    "set-occasion": function (el) {
+      var key = el.getAttribute("data-occasion");
+      var t = state.data.train;
+      t.occasion = key;
+      var setup = OCCASION_SETUPS[key];
+      if (setup) {
+        t.recipientFamily = setup.family;
+        t.recipientContact = setup.contact;
+        t.title = "Meals for " + setup.family;
+        t.household = setup.household;
+        t.householdNote = setup.householdNote;
+        /* A shiva announced under "Mazal tov, a baby girl" is worse than no demo
+           at all — the record has to be rebuilt with the occasion. */
+        state.data.messages = [
+          { id: "o1", from: "golde", dir: "in", time: "10:02", text: setup.opening },
+          { id: "o2", from: "golde", dir: "in", time: "10:03", card: "board",
+            text: [byTone({
+              bright: "Here's the week. Take a look and see what fits.",
+              tender: "Here's the week. Take whatever fits — no need to tell me why if it doesn't.",
+              quiet:  "Here's the week."
+            })] }
+        ];
+      }
+      state.sheet = null;
+      render();
+      toast("Now a " + occasionText(key) + ". Listen to how she changes.");
     },
 
     "fastforward": function () { fastForward(); },
