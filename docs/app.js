@@ -188,6 +188,11 @@
     role: "neighbor",          // organizer | neighbor | family
     surface: "chat",           // chat | board
     data: seed(),
+    filter: "open",            // open | all — what a neighbour actually came for
+    details: false,            // the family's full particulars, folded away by default
+    trainOpen: false,          // dates and occasion — reference, not a daily action
+    contactsOpen: false,       // show the people who are already sorted
+    deliveryOpen: false,       // the family's drop-off details
     sheet: null,               // { kind, ... }
     form: {},
     you: { name: "" },
@@ -851,6 +856,35 @@
     return h;
   }
 
+  /* A night nobody needs to act on. One line is enough; the card was 145px. */
+  function compactDay(day) {
+    var slots = day.slots.filter(function (s) { return s.filled; });
+    var t = state.data.train;
+    var hide = state.role === "family" && !t.showDishes;
+
+    /* Compacting a night must not remove what you can do on it. */
+    var act = "";
+    if (state.role === "family" && !hide) {
+      var meal = slots.filter(function (x) { return x.kind === "meal"; })[0];
+      if (meal && meal.recipe) {
+        act = '<button class="mini-link" data-act="see-recipe" data-slot="' + meal.id +
+          '">recipe</button>';
+      } else if (meal && !meal.recipeAsked && !meal.recipeDeclined) {
+        act = '<button class="mini-link" data-act="ask-recipe" data-slot="' + meal.id +
+          '">ask for it</button>';
+      }
+    }
+
+    return '<div class="compact-day">' +
+      '<span class="cd-day">' + esc(dayName(day.iso)) + "</span>" +
+      '<span class="cd-dish">' + esc(hide ? "Something's coming" :
+        slots.map(function (s) { return lowerFirst(s.dish); }).join(" · ")) + "</span>" +
+      '<span class="cd-by">' + esc(slots.map(function (s) {
+        return s.by.split(" ")[0]; }).join(", ")) + "</span>" +
+      act +
+      "</div>";
+  }
+
   var KIND_ICON = { meal: "🍲", groceries: "🧺", giftcard: "💌", orderin: "🛵" };
   var KIND_LABEL = { meal: "", groceries: "Groceries", giftcard: "Gift card", orderin: "Ordering in" };
 
@@ -977,8 +1011,23 @@
              "<br><span style=\"color:var(--muted);font-size:13px\">by " + esc(x.day.to) + " pm" +
              (x.day.candle ? ", before candles at " + esc(x.day.candle) : "") + "</span></dd></div>";
       });
+      h += '<div class="fact"><dt>Where</dt><dd>' + esc(t.address) +
+        '<div style="font-size:13px;color:var(--muted);margin-top:2px">' + esc(t.dropoff) +
+        "</div></dd></div>";
       h += "</div>";
     }
+
+    var openCount = open.length;
+    var covered = state.data.days.filter(function (d) {
+      return d.needed && !d.slots.some(function (x) { return !x.filled; });
+    }).length;
+    h += '<div class="chips seg">' +
+      '<button class="chip small" data-act="set-filter" data-filter="open" aria-pressed="' +
+        (state.filter === "open") + '">Still open (' + openCount + ")</button>" +
+      '<button class="chip small" data-act="set-filter" data-filter="all" aria-pressed="' +
+        (state.filter === "all") + '">The whole week</button>' +
+      "</div>";
+    void covered;
 
     var vn = boardVarietyNote();
     if (vn && !t.wrapped) {
@@ -987,13 +1036,25 @@
 
     h += recipientPanel(false);
 
-    h += '<div class="section-label">The week</div>';
-    state.data.days.forEach(function (day) { h += dayCard(day); });
+    state.data.days.forEach(function (day) {
+      var hasOpen = day.needed && day.slots.some(function (x) { return !x.filled; });
+      var mine = day.slots.some(function (x) { return x.filled && x.mine; });
+      if (state.filter === "open") {
+        if (hasOpen || mine) h += dayCard(day);
+        return;
+      }
+      /* A night that's settled needs one line, not a card. */
+      h += (hasOpen || mine || !day.needed) ? dayCard(day) : compactDay(day);
+    });
+    if (state.filter === "open" && !open.length) {
+      h += '<div class="golde-note"><span class="gn-mark">golde.</span><span>' +
+        esc("Every night is taken. Have a look at the whole week if you'd like to see what's coming.") +
+        "</span></div>";
+    }
 
     if (!t.wrapped && !t.paused) {
-      h += '<div class="panel"><h3>Not a cook? Wonderful.</h3>' +
-        '<p class="lede">Groceries, a gift card, a delivery to the door. All of it counts.</p>' +
-        '<button class="btn block ghost" data-act="claim-nocook">Help without cooking</button></div>';
+      h += '<button class="btn block ghost" data-act="claim-nocook" style="margin-top:4px">' +
+        "Not a cook? Help another way</button>";
     }
 
     return h;
@@ -1003,8 +1064,27 @@
 
   function recipientPanel(editable) {
     var t = state.data.train;
-    var h = '<div class="panel"><h3>About the Cohens</h3>';
-    h += '<p class="lede">So you cook the right amount and arrive at the right time.</p>';
+    var h = '<div class="panel"><h3>About ' + esc(t.recipientFamily) + "</h3>";
+
+    /* The three things that decide what you cook. Everything else waits. */
+    h += '<p class="lede" style="margin-bottom:10px">' +
+      esc(t.household + " to cook for · " +
+          (t.allergies.length
+            ? t.allergies.map(function (a) {
+                return ALLERGY_TAGS[a] ? ALLERGY_TAGS[a].label : a; }).join(", ")
+            : "no allergies") +
+          " · kosher, meat and dairy separate") + "</p>";
+
+    if (editable) {
+      /* The organizer fields "where do they live?" all week — keep it in reach. */
+      h += '<p class="lede" style="margin:-6px 0 10px">' + esc(t.address) + "</p>" +
+        '<button class="btn block ghost" data-act="edit-recipient">Change any of this</button></div>';
+      return h;
+    }
+    if (!state.details) {
+      h += '<button class="mini-link" data-act="toggle-details">Everything else</button></div>';
+      return h;
+    }
 
     h += '<dl style="margin:0">';
     h += fact("Cooking for", t.household + " — " + t.householdNote + ". Leftovers are a blessing.");
@@ -1034,11 +1114,7 @@
     }
     h += "</dl>";
 
-    if (editable) {
-      h += '<button class="btn block ghost" style="margin-top:14px" data-act="edit-recipient">' +
-        "Change any of this</button>";
-    }
-    h += "</div>";
+    h += '<button class="mini-link" data-act="toggle-details">Show less</button></div>';
     return h;
   }
 
@@ -1073,7 +1149,14 @@
     h += statsRow();
 
     h += '<div class="panel"><h3>The train</h3>' +
-      '<p class="lede">Change anything, any time. Moving a day around is not a crisis.</p>' +
+      '<p class="lede" style="margin-bottom:10px">' +
+        esc(cap(occasionText(t.occasion)) + " · " + shortDate(t.start) + " to " + shortDate(t.end)) +
+      "</p>";
+    if (!state.trainOpen) {
+      h += '<button class="mini-link" data-act="toggle-train">Change the dates or the occasion</button>' +
+        "</div>";
+    } else {
+      h += '<p class="lede">Change anything, any time. Moving a day around is not a crisis.</p>' +
       '<div class="f"><label for="o-family">Who are we feeding</label>' +
         '<input type="text" id="o-family" data-field="recipientFamily" value="' + esc(t.recipientFamily) + '"></div>' +
       '<div class="f"><label for="o-occasion">What\'s the occasion</label>' +
@@ -1087,12 +1170,23 @@
       '<div class="golde-note tight"><span class="gn-mark">golde.</span><span>Stretch the dates and I\'ll add ' +
         'the new days empty. Shorten them and I\'ll quietly let anyone affected know — nobody gets dropped ' +
         'without hearing it from me first.</span></div>' +
+      '<button class="mini-link" data-act="toggle-train">Done</button>' +
       "</div>";
+    }
 
     h += recipientPanel(true);
 
-    h += '<div class="section-label">The whole week at a glance</div>';
-    state.data.days.forEach(function (day) { h += dayCard(day); });
+    h += '<div class="chips seg">' +
+      '<button class="chip small" data-act="set-filter" data-filter="open" aria-pressed="' +
+        (state.filter === "open") + '">Needs attention (' + open.length + ")</button>" +
+      '<button class="chip small" data-act="set-filter" data-filter="all" aria-pressed="' +
+        (state.filter === "all") + '">The whole week</button>' +
+      "</div>";
+    state.data.days.forEach(function (day) {
+      var hasOpen = day.needed && day.slots.some(function (x) { return !x.filled; });
+      if (state.filter === "open") { if (hasOpen) h += dayCard(day); return; }
+      h += (hasOpen || !day.needed) ? dayCard(day) : compactDay(day);
+    });
 
     h += contactsPanel();
 
@@ -1135,7 +1229,11 @@
       '<p class="lede">Everyone I can reach, and where they are this week. I message people one ' +
       'at a time — a reminder in a group chat is just noise.</p>';
 
-    contacts.forEach(function (c) {
+    var needsSomething = contacts.filter(function (c) { return !c.optedIn || !contactStatus(c.name); });
+    var settled = contacts.filter(function (c) { return c.optedIn && contactStatus(c.name); });
+    var shown = state.contactsOpen ? contacts : needsSomething;
+
+    shown.forEach(function (c) {
       var got = contactStatus(c.name);
       h += '<div class="contact">' +
         '<div class="contact-main">' +
@@ -1166,7 +1264,14 @@
         "</div></div>";
     });
 
-    h += '<div class="f" style="margin:14px 0 0"><label for="new-contact">Add a neighbor</label>' +
+    if (settled.length) {
+      h += '<button class="mini-link" data-act="toggle-contacts" style="margin-top:10px">' +
+        (state.contactsOpen
+          ? "Hide the " + settled.length + " who are sorted"
+          : settled.length + " more, all sorted — show them") + "</button>";
+    }
+
+    h += '<div class="f" style="margin:14px 0 0"><label for="new-contact">Add someone</label>' +
       '<div class="hint">A name is enough. I\'ll ask her myself whether she wants to hear from me.</div>' +
       '<input type="text" id="new-contact" placeholder="Faigy Berkowitz" data-newcontact="1"></div>';
 
@@ -1238,8 +1343,13 @@
         '<input type="text" id="f-kosher" data-field="kosherLevel" value="' + esc(t.kosherLevel) + '"></div>' +
       "</div>";
 
-    h += '<div class="panel"><h3>Getting it to your door</h3>' +
-      '<div class="f"><label for="f-address">Where to bring it</label>' +
+    h += '<div class="panel"><h3>Getting it to your door</h3>';
+    if (!state.deliveryOpen) {
+      h += '<p class="lede" style="margin-bottom:10px">' +
+        esc(t.address + " · " + (t.ringBell ? "ring the bell" : "leave it at the door")) + "</p>" +
+        '<button class="mini-link" data-act="toggle-delivery">Change any of this</button></div>';
+    } else {
+      h += '<div class="f"><label for="f-address">Where to bring it</label>' +
         '<input type="text" id="f-address" data-field="address" value="' + esc(t.address) + '"></div>' +
       '<div class="f"><label for="f-dropoff">What should they do when they get there</label>' +
         '<textarea id="f-dropoff" data-field="dropoff">' + esc(t.dropoff) + "</textarea></div>" +
@@ -1257,10 +1367,15 @@
         "</div>" +
         '<button class="switch" data-act="toggle-surprise" aria-pressed="' + t.showDishes + '" ' +
         'aria-label="Show what is coming"></button></div>' +
+        '<button class="mini-link" data-act="toggle-delivery" style="margin-top:6px">Done</button>' +
       "</div>";
+    }
 
     h += '<div class="section-label">This week</div>';
-    state.data.days.forEach(function (day) { h += dayCard(day); });
+    state.data.days.forEach(function (day) {
+      var settled = day.needed && !day.slots.some(function (x) { return !x.filled; });
+      h += settled ? compactDay(day) : dayCard(day);
+    });
 
     var kept = filledSlots().filter(function (x) { return x.slot.recipe; });
     if (kept.length) {
@@ -2071,6 +2186,7 @@
   /* --- organizer actions ----------------------------------------------------- */
 
   function nudge() {
+    var t = state.data.train;
     var open = openDays();
     if (!open.length) return;
     var names = listify(open.map(function (x) { return dayName(x.iso); }));
@@ -2520,6 +2636,15 @@
     "edit-slot": function (el) { openSheet("editslot", { slotId: el.getAttribute("data-slot") }); },
     "edit-recipient": function () { openSheet("recipient", {}); },
     "reopen": function (el) { reopen(el.getAttribute("data-slot")); },
+    "set-filter": function (el) {
+      state.filter = el.getAttribute("data-filter");
+      render();
+      var bs = $("#board-scroll"); if (bs) bs.scrollTop = 0;
+    },
+    "toggle-details": function () { state.details = !state.details; render(); },
+    "toggle-train": function () { state.trainOpen = !state.trainOpen; render(); },
+    "toggle-contacts": function () { state.contactsOpen = !state.contactsOpen; render(); },
+    "toggle-delivery": function () { state.deliveryOpen = !state.deliveryOpen; render(); },
     "set-kosher": function (el) {
       var day = findDay(el.getAttribute("data-day"));
       if (day) day.kosher = el.getAttribute("data-k");
