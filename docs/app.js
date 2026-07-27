@@ -945,8 +945,14 @@
       }).join("") + '<div style="font-size:13px;color:var(--muted);margin-top:2px">Not an allergy. Nobody will ' +
         'say a word.</div>', true);
     }
-    h += fact("Drop-off", esc(t.address) + '<div style="font-size:13px;color:var(--muted);margin-top:2px">' +
-      esc(t.dropoff) + "</div>", true);
+    if (canSeeAddress()) {
+      h += fact("Drop-off", esc(t.address) +
+        '<div style="font-size:13px;color:var(--muted);margin-top:2px">' + esc(t.dropoff) + "</div>", true);
+    } else {
+      h += fact("Drop-off", '<span style="color:var(--muted)">' +
+        esc("I'll give you the address the moment you've got a night. No sense telling a whole " +
+            "group chat where a new mother lives.") + "</span>", true);
+    }
     h += "</dl>";
 
     if (editable) {
@@ -955,6 +961,14 @@
     }
     h += "</div>";
     return h;
+  }
+
+  /* The link gets forwarded well past the people it was meant for. Where a new
+     mother lives is not something to hand to a whole group chat, so the address
+     waits until somebody has actually taken a night. Organizer and family always
+     see it — it's their own house. */
+  function canSeeAddress() {
+    return state.role !== "neighbor" || myClaims().length > 0;
   }
 
   function fact(k, v, raw) {
@@ -2087,7 +2101,10 @@
         "Leftovers are a blessing."];
     }
     if (/where|address|drop|door|deliver to/.test(t)) {
-      return [train.address + ". " + train.dropoff];
+      return canSeeAddress()
+        ? [train.address + ". " + train.dropoff]
+        : ["Take a night first, sweetheart, and the address is yours straight away. " +
+           "I don't hand out where a new mother lives to anyone who happens to have the link."];
     }
     if (/when|what time|deadline|candle|shabb/.test(t)) {
       var fri = state.data.days.filter(function (x) { return x.candle; })[0];
