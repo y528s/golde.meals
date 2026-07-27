@@ -111,14 +111,14 @@
          mechanism — she reaches people one to one, not by shouting into a group.
          Numbers are 555 (reserved for fiction) and go nowhere. */
       contacts: [
-        { id: "c1", name: "Rivky Weiss",      phone: "+1 (555) 014-2288", optedIn: true },
-        { id: "c2", name: "Shira Blum",       phone: "+1 (555) 014-9071", optedIn: true },
-        { id: "c3", name: "Miri Katz",        phone: "+1 (555) 014-3345", optedIn: true },
-        { id: "c4", name: "Devorah Stern",    phone: "+1 (555) 014-6612", optedIn: true },
-        { id: "c5", name: "Yael Fried",       phone: "+1 (555) 014-8890", optedIn: true },
-        { id: "c6", name: "Chana Leah Gross", phone: "+1 (555) 014-7734", optedIn: true },
-        { id: "c7", name: "Bracha Levi",      phone: "+1 (555) 014-2019", optedIn: true },
-        { id: "c8", name: "Tzippy Marcus",    phone: "+1 (555) 014-5560", optedIn: false }
+        { id: "c1", name: "Rivky Weiss",      phone: "+1 (555) 014-2288", channel: "whatsapp", optedIn: true },
+        { id: "c2", name: "Shira Blum",       phone: "+1 (555) 014-9071", channel: "whatsapp", optedIn: true },
+        { id: "c3", name: "Miri Katz",        phone: "+1 (555) 014-3345", channel: "sms",      optedIn: true },
+        { id: "c4", name: "Devorah Stern",    phone: "devorah@example.com", channel: "email",  optedIn: true },
+        { id: "c5", name: "Yael Fried",       phone: "+1 (555) 014-8890", channel: "whatsapp", optedIn: true },
+        { id: "c6", name: "Chana Leah Gross", phone: "Calendar reminder", channel: "calendar", optedIn: false },
+        { id: "c7", name: "Bracha Levi",      phone: "+1 (555) 014-2019", channel: "whatsapp", optedIn: true },
+        { id: "c8", name: "Tzippy Marcus",    phone: "Not asked yet",     channel: null,       optedIn: false }
       ],
 
       messages: [
@@ -231,6 +231,35 @@
     if (!day) return null;
     return day.slots.filter(function (s) { return s.id === slotId; })[0] || null;
   }
+  /* Claiming a night creates (or updates) the person's record. Choosing a
+     channel and handing over a number IS the opt-in — the thing that makes a
+     1:1 reminder allowed. Nobody is added to this list without doing that. */
+  function upsertContact(name, channel, handle) {
+    var list = state.data.contacts;
+    var first = name.split(" ")[0].toLowerCase();
+    var existing = list.filter(function (c) {
+      return c.name.toLowerCase() === name.toLowerCase() ||
+             c.name.split(" ")[0].toLowerCase() === first;
+    })[0];
+
+    var reachable = channel !== "none" && channel !== "calendar";
+    if (existing) {
+      existing.channel = channel;
+      if (handle) existing.phone = handle;
+      if (reachable) existing.optedIn = true;
+      return existing;
+    }
+    var c = {
+      id: "c" + (++state.slotSeq),
+      name: name,
+      phone: handle || (channel === "calendar" ? "Calendar reminder" : "No reminder"),
+      channel: channel,
+      optedIn: reachable
+    };
+    list.push(c);
+    return c;
+  }
+
   function findContact(id) {
     return (state.data.contacts || []).filter(function (c) { return c.id === id; })[0] || null;
   }
@@ -978,7 +1007,7 @@
     var t = state.data.train;
     var contacts = state.data.contacts || [];
     var unsigned = contacts.filter(function (c) { return c.optedIn && !contactStatus(c.name); });
-    var quiet = contacts.filter(function (c) { return !c.optedIn; });
+    var quiet = contacts.filter(function (c) { return !c.optedIn && c.channel !== "calendar"; });
 
     var h = '<div class="panel"><h3>The neighbors</h3>' +
       '<p class="lede">Everyone I can reach, and where they are this week. I message people one ' +
@@ -990,11 +1019,15 @@
         '<div class="contact-main">' +
           '<div class="contact-name">' + esc(c.name) +
             (c.optedIn ? "" : ' <span class="badge quiet">not opted in</span>') + "</div>" +
-          '<div class="contact-sub">' + esc(c.phone) + "</div>" +
+          '<div class="contact-sub">' + esc(c.phone) +
+            (c.channel ? ' <span class="via">' + esc(channelDef(c.channel).label) + "</span>" : "") +
+          "</div>" +
           '<div class="contact-state' + (got ? " has" : "") + '">' +
             (got
               ? esc(dayName(got.day.iso) + " — " + lowerFirst(got.slot.dish))
-              : c.optedIn ? "Nothing yet" : "Hasn't said I may write to her") +
+              : c.optedIn ? "Nothing yet"
+                : c.channel === "calendar" ? "Keeps her own calendar — I don't write to her"
+                : "Hasn't said I may write to her") +
           "</div>" +
         "</div>" +
         /* Two actions at most. A wall of links is the same problem as a wall of words. */
@@ -1151,6 +1184,10 @@
     if (nameField) {
       nameField.addEventListener("input", function () { state.form.name = nameField.value; });
     }
+    var contactField = host.querySelector("#claim-contact");
+    if (contactField) {
+      contactField.addEventListener("input", function () { state.form.contact = contactField.value; });
+    }
     var noteField = host.querySelector("#claim-note");
     if (noteField) {
       noteField.addEventListener("input", function () { state.form.note = noteField.value; });
@@ -1229,12 +1266,112 @@
       '<div class="hint">So they know who to thank. No account, nothing to remember.</div>' +
       '<input type="text" id="claim-name" placeholder="Chani Gold" value="' + esc(state.form.name || "") + '"></div>';
 
+    /* Signing up is the opt-in. This is the moment she's allowed to ask how to
+       reach you, and the only moment — so she asks once, warmly, and never again. */
+    var ch = state.form.channel || "whatsapp";
+    body += '<div class="f"><span class="f-legend">How should I remind you?</span>' +
+      '<div class="hint">The day before, so you don\'t have to hold it in your head.</div>' +
+      '<div class="chips">' +
+        CHANNELS.map(function (c) {
+          return '<button class="chip small" data-act="set-channel" data-channel="' + c.key +
+            '" aria-pressed="' + (ch === c.key) + '">' + esc(c.label) + "</button>";
+        }).join("") +
+      "</div></div>";
+
+    var def = channelDef(ch);
+    if (def.needs) {
+      body += '<div class="f"><label for="claim-contact">' + esc(def.fieldLabel) + "</label>" +
+        '<div class="hint">Just me — it never shows up on the board. And nothing here is saved; ' +
+        'this is a demo.</div>' +
+        '<input type="' + (def.needs === "email" ? "email" : "tel") + '" id="claim-contact" ' +
+        'placeholder="' + esc(def.placeholder) + '" value="' + esc(state.form.contact || "") + '"></div>';
+    } else if (ch === "calendar") {
+      body += '<div class="golde-note tight"><span class="gn-mark">golde.</span><span>' +
+        esc("I'll hand you a calendar file and your own phone will do the nagging. " +
+            "No number, nothing for me to hold onto.") + "</span></div>";
+    } else {
+      body += '<div class="golde-note tight"><span class="gn-mark">golde.</span><span>' +
+        esc("Not a word from me, then. You know your own head best.") + "</span></div>";
+    }
+
     var label = day ? "Sign me up for " + esc(dayName(day.iso)) : "Sign me up";
     var foot = '<button class="btn block" data-act="submit-claim">' + label + "</button>" +
       '<button class="btn block quiet" data-act="close-sheet">Not right now</button>';
 
     return sheetShell(day ? esc(dayName(day.iso)) + " is yours if you want it" : "Helping out", sub, body, foot);
   };
+
+  /* --- how she reaches you --------------------------------------------------
+     Signing up for a night is the opt-in. That's what makes a 1:1 WhatsApp
+     reminder legitimate — and it's why she asks here and nowhere else. */
+
+  var CHANNELS = [
+    { key: "whatsapp", label: "WhatsApp", short: "on WhatsApp", needs: "phone",
+      fieldLabel: "Your WhatsApp number", placeholder: "(555) 014-0000" },
+    { key: "sms", label: "Text me", short: "by text", needs: "phone",
+      fieldLabel: "Your mobile number", placeholder: "(555) 014-0000" },
+    { key: "email", label: "Email", short: "by email", needs: "email",
+      fieldLabel: "Your email", placeholder: "you@example.com" },
+    { key: "calendar", label: "My calendar", short: "in your calendar", needs: null },
+    { key: "none", label: "I'll remember", short: "not at all", needs: null }
+  ];
+
+  function channelDef(key) {
+    return CHANNELS.filter(function (c) { return c.key === key; })[0] || CHANNELS[0];
+  }
+
+  /* A real .ics, built in the browser and handed over as a download. No backend,
+     no API, no opt-in needed — their own phone does the reminding. */
+  function calendarFile(day, slot) {
+    var t = state.data.train;
+    var d0 = day.iso.replace(/-/g, "");
+    var start = d0 + "T" + to24(day.from) + "00";
+    var end = d0 + "T" + to24(day.to) + "00";
+    var desc = [
+      "Dinner for " + t.recipientFamily + ".",
+      "You said: " + slot.dish,
+      "Cooking for " + t.household + " — " + t.householdNote + ".",
+      t.allergies.length ? "Allergies: " + t.allergies.map(function (a) {
+        return ALLERGY_TAGS[a] ? ALLERGY_TAGS[a].label : a; }).join(", ") + "." : "",
+      t.dislikes.length ? "Skip: " + t.dislikes.join(", ") + "." : "",
+      day.candle ? "At the door by " + day.to + " — candles at " + day.candle + "." : "",
+      t.dropoff
+    ].filter(Boolean).join("\\n");
+
+    var ics = [
+      "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//golde//meals//EN", "CALSCALE:GREGORIAN",
+      "BEGIN:VEVENT",
+      "UID:" + day.id + "-" + slot.id + "@golde.meals",
+      "DTSTAMP:" + d0 + "T000000",
+      "DTSTART:" + start,
+      "DTEND:" + end,
+      "SUMMARY:Dinner for " + t.recipientFamily,
+      "LOCATION:" + t.address.replace(/,/g, "\\,"),
+      "DESCRIPTION:" + desc.replace(/,/g, "\\,"),
+      "BEGIN:VALARM", "TRIGGER:-P1D", "ACTION:DISPLAY",
+      "DESCRIPTION:Tomorrow's your night for " + t.recipientFamily,
+      "END:VALARM",
+      "END:VEVENT", "END:VCALENDAR"
+    ].join("\r\n");
+
+    var blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "dinner-for-" + t.recipientFamily.replace(/[^a-z]/gi, "-").toLowerCase() + ".ics";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+  }
+
+  /* "4:30" in this app always means the afternoon. */
+  function to24(t) {
+    var parts = String(t).split(":");
+    var h = parseInt(parts[0], 10);
+    if (h < 12) h += 12;
+    return (h < 10 ? "0" + h : h) + (parts[1] || "00");
+  }
 
   function modeChip(v, label, cur) {
     return '<button class="chip" data-act="set-mode" data-mode="' + v + '" aria-pressed="' +
@@ -1462,7 +1599,8 @@
       openSheet("pickday", { mode: mode || "cook" });
       return;
     }
-    state.form = { mode: mode || "cook", kind: "groceries", dish: "", note: "", name: state.you.name || "" };
+    state.form = { mode: mode || "cook", kind: "groceries", dish: "", note: "",
+                   name: state.you.name || "", channel: "whatsapp", contact: "" };
     openSheet("claim", { dayId: dayId, slotId: slotId });
   }
 
@@ -1472,16 +1610,25 @@
     var day = findDay(s.dayId);
     var name = (f.name || "").trim();
 
+    if (f.mode === "cook" && !(f.dish || "").trim()) {
+      toast("Tell me what you're bringing — even roughly. “Something warm” counts.");
+      var df = document.querySelector("#claim-dish");
+      if (df) df.focus();
+      return;
+    }
     if (!name) {
       toast("Just your name, sweetheart, so they know who to thank.");
       var nf = document.querySelector("#claim-name");
       if (nf) nf.focus();
       return;
     }
-    if (f.mode === "cook" && !(f.dish || "").trim()) {
-      toast("Tell me what you're bringing — even roughly. “Something warm” counts.");
-      var df = document.querySelector("#claim-dish");
-      if (df) df.focus();
+    var chDef = channelDef(f.channel || "whatsapp");
+    if (chDef.needs && !(f.contact || "").trim()) {
+      toast(chDef.needs === "email"
+        ? "An email address and I'll do the rest."
+        : "A number, sweetheart, or I've no way to reach you.");
+      var cf = document.querySelector("#claim-contact");
+      if (cf) cf.focus();
       return;
     }
 
@@ -1521,6 +1668,7 @@
     }
 
     var others = day.slots.filter(function (x) { return x.filled; }).length;
+    var channel = f.channel || "whatsapp";
     slot.filled = true;
     slot.kind = kind;
     slot.by = name;
@@ -1528,6 +1676,12 @@
     slot.mine = true;
     slot.delivered = false;
     slot.at = others > 0 ? staggerTime(day) : day.from;
+    slot.channel = channel;
+
+    /* The signup pushes a record into the platform. This is where a stranger
+       becomes someone Golde is allowed to write to, and by which route. */
+    upsertContact(name, channel, (f.contact || "").trim());
+    if (channel === "calendar") calendarFile(day, slot);
 
     state.sheet = null;
     state.form = {};
@@ -1537,15 +1691,21 @@
 
     var lines = [];
     lines.push(dayName(day.iso) + "'s yours. Thank you, sweetheart.");
-    if (kind === "meal") {
-      lines.push("I'll remind you the day before so you don't have to keep it in your head. " +
-        (day.candle
-          ? "It's the Shabbos one, so it needs to be at the door by " + day.to + " — before candles at " +
-            day.candle + "."
-          : "Anywhere between " + day.from + " and " + day.to + " is perfect."));
+
+    var when = day.candle
+      ? "It's the Shabbos one — at the door by " + day.to + ", before candles at " + day.candle + "."
+      : "Anywhere between " + day.from + " and " + day.to + ".";
+
+    if (channel === "none") {
+      lines.push("No reminder, as you asked. " + when);
+    } else if (channel === "calendar") {
+      lines.push("It's in your calendar now, with an alert the day before. " + when);
     } else {
-      lines.push("I'll remind you the day before, and I'll tell them to watch for it. " +
-        "Not everybody cooks, and honestly some weeks this is the more useful thing.");
+      lines.push("I'll remind you the day before " + channelDef(channel).short +
+        ", so you don't have to keep it in your head. " + when);
+    }
+    if (kind !== "meal") {
+      lines.push("Not everybody cooks, and honestly some weeks this is the more useful thing.");
     }
 
     var stillOpen = openDays();
@@ -1746,6 +1906,10 @@
       t.address + "."
     );
     lines.push("You've got this.");
+
+    if (slot.channel && slot.channel !== "whatsapp") {
+      lines.unshift("(" + cap(channelDef(slot.channel).short) + ", as you asked.)");
+    }
 
     goldeSays(lines, {
       actions: slot.mine ? [
@@ -2011,6 +2175,11 @@
     },
     "set-mode": function (el) { state.form.mode = el.getAttribute("data-mode"); render(); },
     "set-kind": function (el) { state.form.kind = el.getAttribute("data-kind"); render(); },
+    "set-channel": function (el) {
+      state.form.channel = el.getAttribute("data-channel");
+      state.form.contact = "";
+      render();
+    },
     "submit-claim": function () { submitClaim(); },
     "close-concerns": function () {
       openSheet("claim", { dayId: state.sheet.dayId, slotId: state.sheet.slotId });
