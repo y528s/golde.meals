@@ -1393,10 +1393,24 @@
     }
 
     h += '<div class="panel"><h3>When it\'s too much</h3>' +
-      '<p class="lede">You\'re allowed to have enough. Say the word and I\'ll give everyone the week off — ' +
-      'warmly, with no explanation owed to anybody, and I\'ll wave them back when you\'re ready.</p>';
+      '<p class="lede">You\'re allowed to have enough. Nobody is owed an explanation.</p>';
+
+    /* Calling off a night somebody has already shopped and cooked for is not
+       generosity, it's waste with a kind face on it. Anything already claimed
+       goes through the organizer, who can judge it. */
+    var imminent = filledSlots().filter(function (x) { return !x.slot.delivered; });
     if (t.paused) {
       h += '<button class="btn block" data-act="unpause">We\'re ready for meals again</button>';
+    } else if (imminent.length) {
+      h += '<div class="golde-note tight" style="margin:0 0 12px"><span class="gn-mark">golde.</span><span>' +
+        esc(listify(imminent.map(function (x) { return x.slot.by.split(" ")[0]; })) + " " +
+            plural(imminent.length, "has", "have") + " already got shopping in for you. Let me not " +
+            "call that off over your head — have a word with " + organizerName() +
+            ", who can sort it kindly.") + "</span></div>" +
+        '<button class="btn block" data-act="message-organizer-pause">Message ' +
+          esc(organizerName().split(" ")[0]) + " about it</button>" +
+        '<button class="btn block quiet" style="margin-top:9px" data-act="pause">' +
+          "Stop anything not yet claimed</button>";
     } else {
       h += '<button class="btn block ghost" data-act="pause">Give everyone the week off</button>';
     }
@@ -1444,6 +1458,10 @@
     if (recipeField) {
       recipeField.addEventListener("input", function () { state.form.recipe = recipeField.value; });
       setTimeout(function () { recipeField.focus(); }, 260);
+    }
+    var thanksField = host.querySelector("#thanks-text");
+    if (thanksField) {
+      thanksField.addEventListener("input", function () { state.form.thanks = thanksField.value; });
     }
     var noteField = host.querySelector("#claim-note");
     if (noteField) {
@@ -2252,6 +2270,8 @@
 
   /* --- family actions -------------------------------------------------------- */
 
+  function organizerName() { return state.data.train.organizer || "Rivky Weiss"; }
+
   function pause() {
     state.data.train.paused = true;
     goldeSays([
@@ -2277,18 +2297,31 @@
     goto("chat");
   }
 
-  function sayThanks() {
-    state.data.train.thanksSent = true;
-    say("Sarah Cohen", [
-      "I don't have the words yet, so this will have to do. Thank you. All of you.",
-      "We opened the door every night this week and there was food and a note and somebody's " +
-        "handwriting on the lid. I'll never forget it. ❤️"
-    ]);
-    goldeSays([
-      "There it is. Now everybody go have a good cry and then eat something yourselves."
-    ]);
-    goto("chat");
+  function defaultThanks() {
+    return byTone({
+      bright: "I don't have the words yet, so this will have to do. Thank you. All of you.\n\n" +
+        "We opened the door every night this week and there was food and a note and somebody's " +
+        "handwriting on the lid. I'll never forget it.",
+      tender: "Thank you, all of you. We didn't think about dinner once, and that was the whole " +
+        "difference.",
+      quiet: "Thank you. There's nothing else I can manage to say yet, but thank you."
+    });
   }
+
+  function sayThanks() {
+    state.form = { thanks: state.data.train.thanksDraft || defaultThanks() };
+    openSheet("thanks", {});
+  }
+
+  SHEETS.thanks = function () {
+    var body = '<p class="golde-say">I\'ve written something to start you off. Change every word ' +
+      'of it if you like — it should sound like you, not like me.</p>' +
+      '<div class="f"><textarea id="thanks-text" rows="8">' + esc(state.form.thanks || "") +
+      "</textarea></div>";
+    return sheetShell("In your own words", "", body,
+      '<button class="btn block" data-act="send-thanks">Send it to everyone</button>' +
+      '<button class="btn block quiet" data-act="close-sheet">Not yet</button>');
+  };
 
   /* --- reminder (fast-forward) ------------------------------------------------ */
 
@@ -2800,6 +2833,31 @@
     "unpause": function () { unpause(); },
     "say-thanks": function () { sayThanks(); },
 
+    "send-thanks": function () {
+      var t = state.data.train;
+      var text = (state.form.thanks || "").trim();
+      if (!text) { toast("Say anything at all, or nothing. Both are allowed."); return; }
+      t.thanksSent = true;
+      t.thanksDraft = text;
+      state.sheet = null;
+      say(t.recipientContact.split(" &")[0], text.split(/\n\n+/));
+      goldeSays(byTone({
+        bright: ["There it is. Now everybody go have a good cry and then eat something yourselves."],
+        tender: ["There it is. Go on, all of you — you've earned a quiet evening."],
+        quiet:  ["There it is."]
+      }));
+      goto("chat");
+    },
+
+    "message-organizer-pause": function () {
+      var t = state.data.train;
+      var msg = "It's " + t.recipientContact.split(" &")[0] + " — we've got more than enough food " +
+        "just now. Could we quietly slow things down for a few days? I don't want anyone put out.";
+      window.open("https://wa.me/15550142288?text=" + encodeURIComponent(msg), "_blank",
+        "noopener,noreferrer");
+      toast("Opening WhatsApp with it written for you. Change any of it.");
+    },
+
     "donate": function () {
       state.sheet = null;
       goldeSays(["That's very kind of you, and it means the next family doesn't pay a thing. " +
@@ -2819,6 +2877,7 @@
         t.title = "Meals for " + setup.family;
         t.household = setup.household;
         t.householdNote = setup.householdNote;
+        delete t.thanksDraft;   /* a birth's thank-you is not a shiva's */
         /* A shiva announced under "Mazal tov, a baby girl" is worse than no demo
            at all — the record has to be rebuilt with the occasion. */
         state.data.messages = [
