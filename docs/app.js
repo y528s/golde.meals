@@ -102,9 +102,23 @@
         {
           id: "d7", iso: "2026-08-08", needed: false, kosher: "any",
           from: "4:30", to: "6:00", candle: null,
-          offReason: "Shabbos is covered — there's enough in the fridge from Friday. Rest.",
+          offReason: "There's enough in the fridge from Friday. Rest.",
           slots: []
         }
+      ],
+
+      /* Golde's little black book. In the real product this is the whole
+         mechanism — she reaches people one to one, not by shouting into a group.
+         Numbers are 555 (reserved for fiction) and go nowhere. */
+      contacts: [
+        { id: "c1", name: "Rivky Weiss",      phone: "+1 (555) 014-2288", optedIn: true },
+        { id: "c2", name: "Shira Blum",       phone: "+1 (555) 014-9071", optedIn: true },
+        { id: "c3", name: "Miri Katz",        phone: "+1 (555) 014-3345", optedIn: true },
+        { id: "c4", name: "Devorah Stern",    phone: "+1 (555) 014-6612", optedIn: true },
+        { id: "c5", name: "Yael Fried",       phone: "+1 (555) 014-8890", optedIn: true },
+        { id: "c6", name: "Chana Leah Gross", phone: "+1 (555) 014-7734", optedIn: true },
+        { id: "c7", name: "Bracha Levi",      phone: "+1 (555) 014-2019", optedIn: true },
+        { id: "c8", name: "Tzippy Marcus",    phone: "+1 (555) 014-5560", optedIn: false }
       ],
 
       messages: [
@@ -217,6 +231,10 @@
     if (!day) return null;
     return day.slots.filter(function (s) { return s.id === slotId; })[0] || null;
   }
+  function findContact(id) {
+    return (state.data.contacts || []).filter(function (c) { return c.id === id; })[0] || null;
+  }
+
   function locateSlot(slotId) {
     for (var i = 0; i < state.data.days.length; i++) {
       var day = state.data.days[i];
@@ -269,14 +287,9 @@
                "macaroon", "amaretto", "frangipane", "romesco"],
       why: "It's a real allergy, not a preference, so it's worth turning the jar around and reading the back."
     },
-    "no-shellfish": {
-      label: "no shellfish",
-      friendly: "shellfish",
-      words: ["shrimp", "prawn", "crab", "lobster", "clam", "mussel", "oyster", "scallop",
-              "calamari", "bisque", "paella", "bouillabaisse"],
-      sneaky: ["bisque", "paella", "bouillabaisse"],
-      why: "It turns up in stocks and sauces where nobody thinks to look for it."
-    },
+    /* No shellfish tag here on purpose — these households keep kosher, so it's
+       already off the table. Offering it as a checkbox reads like we don't know
+       who we're talking to. */
     "gluten-free": {
       label: "gluten-free",
       friendly: "gluten",
@@ -373,8 +386,8 @@
         text: cap(t.recipientFamily) + " don't do " + def.friendly +
               (sneaky
                 ? ", and " + hit + " likes to hide them. "
-                : ", and you've got " + hit + " written right there in it. ") +
-              def.why + " Want to rethink it, or is yours definitely safe?"
+                : ", and you've got " + hit + " right there in it. ") +
+              "Want to rethink it, or is yours definitely safe?"
       });
     });
 
@@ -383,8 +396,7 @@
       if (!hasWord(dish, dis)) return;
       concerns.push({
         kind: "dislike",
-        text: "Only thing — Sarah has never once finished a " + dis + ". It's not an allergy, " +
-              "nobody will say a word, and they'll eat around it happily. I just thought you'd want to know."
+        text: "Sarah has never once finished a " + dis + ". Not an allergy — they'll eat around it."
       });
     });
 
@@ -395,15 +407,11 @@
       if (k.type !== "unknown" && k.type !== want) {
         var line;
         if (k.type === "both") {
-          line = "This one has me squinting. “" + k.word + "” in the same pot — they keep meat and " +
-                 "dairy separate in that house. Totally your call, I just didn't want you to find out at the door.";
-        } else if (want === "pareve") {
-          line = dayName(day.iso) + " they're hoping for something pareve, so it goes with whatever else " +
-                 "lands that day. What you typed sounds " + k.type + ". Your call entirely — I only mention it " +
-                 "so nobody's standing at the door doing math.";
+          line = "“" + k.word + "” in the same pot — they keep meat and dairy separate. " +
+                 "Your call, I just didn't want you finding out at the door.";
         } else {
-          line = dayName(day.iso) + " they're hoping for a " + want + " dinner. What you typed sounds like " +
-                 k.type + ". Totally your call, I just didn't want you to find out at the door.";
+          line = dayName(day.iso) + " they're hoping for " + want + ". That sounds like " + k.type +
+                 ". Your call, I just didn't want you finding out at the door.";
         }
         concerns.push({ kind: "kosher", text: line });
       }
@@ -427,10 +435,8 @@
       if (days.length) {
         concerns.push({
           kind: "variety",
-          text: "Heads up — " + listify(days) + " " + plural(days.length, "is", "are") + " already " +
-                cat.label + ", and so is yours. Nobody will complain, and honestly nobody will notice. " +
-                "But a little variety never hurt anyone. Want to bring something else, or shall I put " +
-                "you down as-is?"
+          text: listify(days) + " " + plural(days.length, "is", "are") + " already " + cat.label +
+                ". Nobody will complain, but a little variety never hurt anyone."
         });
       }
     }
@@ -478,8 +484,7 @@
     var filled = day.slots.filter(function (s) { return s.filled; });
     if (filled.length < 2) return null;
     var names = filled.map(function (s) { return s.by + " at " + s.at; });
-    return "Two drop-offs on " + dayName(day.iso) + ". I spread them out — " + listify(names) +
-           " — so that poor doorbell isn't ringing twice in one minute.";
+    return "Two drop-offs. I staggered them — " + listify(names) + ".";
   }
 
   /* Seeded variety clash shown on the board itself, unprompted. */
@@ -494,7 +499,7 @@
       var ca = dishCategory(a.dish), cb = dishCategory(b.dish);
       if (ca && cb && ca.key === cb.key) {
         return dayName(prev.iso) + " and " + dayName(cur.iso) + " are both " + ca.label +
-               ". Nobody will complain — but if you're still deciding, maybe not a third.";
+               ". Maybe not a third.";
       }
     }
     return null;
@@ -718,9 +723,8 @@
 
     if (day.candle) {
       h += '<div class="golde-note warn tight"><span class="gn-mark">golde.</span><span>' +
-        "Friday is different. Candles are at " + esc(day.candle) + ", so dinner has to be at the door by " +
-        esc(day.to) + " at the very latest — earlier if you can manage it. Nobody should be carrying a hot pan " +
-        "at seven o'clock.</span></div>";
+        "Candles at " + esc(day.candle) + ". Dinner has to be at the door by " + esc(day.to) +
+        " — earlier if you can.</span></div>";
     }
 
     day.slots.forEach(function (slot) { h += slotRow(day, slot); });
@@ -813,19 +817,16 @@
 
     var lede;
     if (t.wrapped) {
-      lede = "That's a wrap. Look at this week — every one of you showed up. The Cohens know exactly who they " +
-             "have around them now, and that's worth more than the dinners.";
+      lede = "That's a wrap. Every one of you showed up.";
     } else if (t.paused) {
-      lede = "The Cohens have enough for now, so I gave everybody the week off. Don't cook. I'll wave you " +
-             "back in when they're ready, and nobody's lost their place.";
+      lede = "The Cohens have enough for now. Don't cook — I'll wave you back in when they're ready.";
     } else if (!filledSlots().length) {
-      lede = "Nothing on the calendar yet. Let's fill it up so the Cohens don't have to think about dinner.";
+      lede = "Nothing here yet. Let's fill it up so the Cohens don't have to think about dinner.";
     } else if (!open.length) {
-      lede = "Every single night is spoken for. I don't want to make a fuss, but I'm making a small one.";
+      lede = "Every night is spoken for. I'm very pleased with all of you.";
     } else {
-      lede = "Here's the week. " + listify(open.map(function (x) { return dayName(x.iso); })) +
-             " still " + plural(open.length, "has", "have") + " nobody. Take whichever one fits your week — " +
-             "and if cooking isn't your thing, there's another way to help further down.";
+      lede = listify(open.map(function (x) { return dayName(x.iso); })) + " still " +
+             plural(open.length, "has", "have") + " nobody. Take whichever fits your week.";
     }
     h += '<div class="golde-note"><span class="gn-mark">golde.</span><span>' + esc(lede) + "</span></div>";
 
@@ -854,9 +855,7 @@
 
     if (!t.wrapped && !t.paused) {
       h += '<div class="panel"><h3>Not a cook? Wonderful.</h3>' +
-        '<p class="lede">Some of the most useful things that week won\'t come out of an oven. Groceries in the ' +
-        'fridge, a gift card for the nights nobody has the strength, a delivery ordered straight to the door. ' +
-        'All of it counts. Nobody is keeping score, and if they were, I\'d be the one keeping it.</p>' +
+        '<p class="lede">Groceries, a gift card, a delivery to the door. All of it counts.</p>' +
         '<button class="btn block ghost" data-act="claim-nocook">Help without cooking</button></div>';
     }
 
@@ -868,12 +867,10 @@
   function recipientPanel(editable) {
     var t = state.data.train;
     var h = '<div class="panel"><h3>About the Cohens</h3>';
-    h += '<p class="lede">Everything you need to cook the right amount and arrive at the right time. ' +
-         'None of it is a test.</p>';
+    h += '<p class="lede">So you cook the right amount and arrive at the right time.</p>';
 
     h += '<dl style="margin:0">';
-    h += fact("Cooking for", t.household + " at the table — " + t.householdNote +
-      ". Cook for five and don't worry about it; leftovers are a blessing, not a burden.");
+    h += fact("Cooking for", t.household + " — " + t.householdNote + ". Leftovers are a blessing.");
     h += fact("Allergies", t.allergies.map(function (a) {
       return '<span class="tag allergy">' + esc(ALLERGY_TAGS[a] ? ALLERGY_TAGS[a].label : a) + "</span>";
     }).join("") + '<div style="font-size:13px;color:var(--muted);margin-top:2px">' + esc(t.allergyNote) + "</div>", true);
@@ -888,7 +885,7 @@
       h += fact("Skip", t.dislikes.map(function (l) {
         return '<span class="tag dislike">' + esc(l) + "</span>";
       }).join("") + '<div style="font-size:13px;color:var(--muted);margin-top:2px">Not an allergy. Nobody will ' +
-        'say a word either way.</div>', true);
+        'say a word.</div>', true);
     }
     h += fact("Drop-off", esc(t.address) + '<div style="font-size:13px;color:var(--muted);margin-top:2px">' +
       esc(t.dropoff) + "</div>", true);
@@ -946,6 +943,8 @@
     h += '<div class="section-label">The whole week at a glance</div>';
     state.data.days.forEach(function (day) { h += dayCard(day); });
 
+    h += contactsPanel();
+
     h += '<div class="panel"><h3>When you need me</h3>' +
       '<p class="lede">One tap each. I\'ll do the asking so you don\'t have to be the one nagging your neighbors.</p>';
     if (!t.wrapped) {
@@ -958,6 +957,78 @@
     }
     h += "</div>";
 
+    return h;
+  }
+
+  /* --- the contact book (organizer only) ------------------------------------
+     Every neighbor Golde can reach, and whether they've said yes to hearing
+     from her. This is the piece that makes the real product work: she talks to
+     people one to one, so the list of who she may talk to is the product. */
+
+  function contactStatus(name) {
+    var first = name.split(" ")[0].toLowerCase();
+    var hit = filledSlots().filter(function (x) {
+      return x.slot.by && x.slot.by.split(" ")[0].toLowerCase() === first;
+    })[0];
+    if (!hit) return null;
+    return hit;
+  }
+
+  function contactsPanel() {
+    var t = state.data.train;
+    var contacts = state.data.contacts || [];
+    var unsigned = contacts.filter(function (c) { return c.optedIn && !contactStatus(c.name); });
+    var quiet = contacts.filter(function (c) { return !c.optedIn; });
+
+    var h = '<div class="panel"><h3>The neighbors</h3>' +
+      '<p class="lede">Everyone I can reach, and where they are this week. I message people one ' +
+      'at a time — a reminder in a group chat is just noise.</p>';
+
+    contacts.forEach(function (c) {
+      var got = contactStatus(c.name);
+      h += '<div class="contact">' +
+        '<div class="contact-main">' +
+          '<div class="contact-name">' + esc(c.name) +
+            (c.optedIn ? "" : ' <span class="badge quiet">not opted in</span>') + "</div>" +
+          '<div class="contact-sub">' + esc(c.phone) + "</div>" +
+          '<div class="contact-state' + (got ? " has" : "") + '">' +
+            (got
+              ? esc(dayName(got.day.iso) + " — " + lowerFirst(got.slot.dish))
+              : c.optedIn ? "Nothing yet" : "Hasn't said I may write to her") +
+          "</div>" +
+        "</div>" +
+        /* Two actions at most. A wall of links is the same problem as a wall of words. */
+        '<div class="contact-acts">' +
+          (!c.optedIn
+            ? '<button class="mini-link" data-act="toggle-optin" data-contact="' + c.id +
+              '">She said yes</button>'
+            : got
+              ? ""
+              : '<button class="mini-link" data-act="ask-directly" data-contact="' + c.id +
+                '">Ask her myself</button>') +
+          '<button class="mini-link danger" data-act="remove-contact" data-contact="' + c.id +
+            '">Remove</button>' +
+        "</div></div>";
+    });
+
+    h += '<div class="f" style="margin:14px 0 0"><label for="new-contact">Add a neighbor</label>' +
+      '<div class="hint">A name is enough. I\'ll ask her myself whether she wants to hear from me.</div>' +
+      '<input type="text" id="new-contact" placeholder="Faigy Berkowitz" data-newcontact="1"></div>';
+
+    if (unsigned.length) {
+      h += '<button class="btn block ghost" style="margin-top:4px" data-act="nudge-unsigned">' +
+        "Write to the " + unsigned.length + " who " + plural(unsigned.length, "hasn't", "haven't") +
+        " taken a night</button>";
+    }
+    if (quiet.length) {
+      h += '<div class="golde-note tight"><span class="gn-mark">golde.</span><span>' +
+        esc(listify(quiet.map(function (c) { return c.name.split(" ")[0]; })) + " " +
+            plural(quiet.length, "hasn't", "haven't") + " said I may write to " +
+            plural(quiet.length, "her", "them") + " yet, so I won't. Somebody should ask in person.") +
+        "</span></div>";
+    }
+
+    h += "</div>";
     return h;
   }
 
@@ -1114,11 +1185,10 @@
 
     if (day) {
       body += '<div class="golde-note"><span class="gn-mark">golde.</span><span>' +
-        esc("Cooking for " + t.household + " — " + t.householdNote + ". Leftovers are a blessing, " +
-            "not a burden. " +
+        esc("Cooking for " + t.household + " — " + t.householdNote + ". " +
             (day.candle
-              ? "It's the Shabbos meal, so it has to be at the door by " + day.to + " at the latest."
-              : "Anywhere between " + day.from + " and " + day.to + " is perfect.")) +
+              ? "At the door by " + day.to + ", before candles."
+              : "Anywhere between " + day.from + " and " + day.to + ".")) +
         "</span></div>";
     }
 
@@ -1130,34 +1200,33 @@
 
     if (mode === "cook") {
       body += '<div class="f"><label for="claim-dish">What are you bringing?</label>' +
-        '<div class="hint">Write it however you\'d say it out loud. “A big pot of soup” is a ' +
-        'perfectly good answer.</div>' +
+        '<div class="hint">However you\'d say it out loud. “A big pot of soup” is a fine answer.</div>' +
         '<textarea id="claim-dish" placeholder="A pot of chicken soup and a challah">' +
           esc(state.form.dish || "") + "</textarea>" +
         '<div class="livehint" id="live-hint"></div></div>';
 
       if (t.loves.length) {
         body += '<div class="golde-note tight"><span class="gn-mark">golde.</span><span>' +
-          esc("If you're stuck: they love " + listify(t.loves) + ". No obligation. It just makes a person smile.") +
+          esc("If you're stuck: they love " + listify(t.loves) + ".") +
           "</span></div>";
       }
     } else {
       var kind = state.form.kind || "groceries";
       body += '<div class="f"><span class="f-legend">How would you like to help?</span>' +
-        '<div class="hint">All three of these are just as good as a casserole. Better, some weeks.</div>' +
+        '<div class="hint">Just as good as a casserole. Better, some weeks.</div>' +
         '<div class="chips">' +
           kindChip("groceries", "🧺 Groceries", kind) +
           kindChip("giftcard", "💌 A gift card", kind) +
           kindChip("orderin", "🛵 Order in for them", kind) +
         "</div></div>";
       body += '<div class="f"><label for="claim-note">Anything you want them to know?</label>' +
-        '<div class="hint">Optional. I\'ll pass it on exactly as you write it.</div>' +
+        '<div class="hint">Optional.</div>' +
         '<textarea id="claim-note" placeholder="Milk, eggs, coffee, and something for the little ones">' +
           esc(state.form.note || "") + "</textarea></div>";
     }
 
     body += '<div class="f"><label for="claim-name">Your name</label>' +
-      '<div class="hint">So they know who to thank. No account, no password, nothing to remember.</div>' +
+      '<div class="hint">So they know who to thank. No account, nothing to remember.</div>' +
       '<input type="text" id="claim-name" placeholder="Chani Gold" value="' + esc(state.form.name || "") + '"></div>';
 
     var label = day ? "Sign me up for " + esc(dayName(day.iso)) : "Sign me up";
@@ -1203,7 +1272,7 @@
       body += '<div class="concern ' + esc(c.kind) + '">' + esc(c.text) + "</div>";
     });
     body += '<p class="golde-say" style="margin-top:14px;font-size:16px;color:var(--muted)">' +
-      "I'm not stopping you. I've never stopped anybody. I just notice things.</p>";
+      "I'm not stopping you. I just notice things.</p>";
 
     var foot = '<button class="btn block ghost" data-act="close-concerns">Let me rethink it</button>' +
       '<button class="btn block" data-act="force-claim">It\'s fine — sign me up</button>';
@@ -1701,32 +1770,148 @@
       state.data.messages[state.data.messages.length - 1].dir = "out";
     }
 
-    var t = text.toLowerCase();
-    var reply;
-    if (/cancel|can't make|cant make|something came up|drop out/.test(t)) {
-      reply = ["Life happens, don't give it another thought. Tell me which night and I'll open it back up " +
-        "and quietly let the others know."];
-    } else if (/thank|todah|toda raba/.test(t)) {
-      reply = ["Don't thank me, thank the twenty-three people who said yes. I only did the pestering."];
-    } else if (/what.*bring|what should i|ideas|suggest/.test(t)) {
-      reply = ["They love " + listify(state.data.train.loves) + ". No nuts, and skip the mushrooms. " +
-        "Beyond that, whatever's easy for you — easy for you is the whole point."];
-    } else if (/allerg|nut|kosher|dairy|meat|pareve/.test(t)) {
-      reply = ["Meat and dairy stay separate in that house, and the nut allergy is a real one. " +
-        "Type your dish into the board and I'll check it for you before you cook a thing."];
-    } else if (/when|time|what time|deadline/.test(t)) {
-      reply = ["Most nights, 4:30 to 6:00. Friday is different — it has to be at the door by 4:30, " +
-        "before candles at 7:52. I'll remind you either way."];
-    } else if (/help|how|\?$/.test(t)) {
-      reply = ["Open the board, pick a night that fits your week, and tell me what you're bringing. " +
-        "That's the whole thing. No account, no password, nothing to remember."];
-    } else {
-      reply = ["I hear you, sweetheart. The board has everything if you want to take a look — " +
-        "and if you'd rather I just handled it, say the word and I will."];
-    }
-    goldeSays(reply);
+    goldeSays(answerAbout(text));
     render();
     scrollChatToBottom();
+  }
+
+  /* She reads the board before she opens her mouth. A canned reply to a real
+     question is worse than saying nothing — it makes her look like a machine
+     pretending. Everything below is answered from live state. */
+
+  function findDayByName(text) {
+    var t = " " + text.toLowerCase() + " ";
+    var days = state.data.days;
+    for (var i = 0; i < days.length; i++) {
+      var n = dayName(days[i].iso).toLowerCase();
+      if (t.indexOf(n) > -1) return days[i];
+      if (n === "shabbos" && (t.indexOf("saturday") > -1 || t.indexOf("shabbat") > -1 ||
+          t.indexOf("shabbes") > -1)) return days[i];
+    }
+    return null;
+  }
+
+  function findPersonInText(text) {
+    var t = text.toLowerCase();
+    var hit = null;
+    filledSlots().forEach(function (x) {
+      if (!x.slot.by) return;
+      var first = x.slot.by.split(" ")[0].toLowerCase();
+      if (first.length > 2 && t.indexOf(first) > -1) hit = x;
+    });
+    return hit;
+  }
+
+  function describeDay(day) {
+    if (!day.needed) {
+      return "Nobody needs to bring anything on " + dayName(day.iso) + ". " +
+        (day.offReason || "It's covered.");
+    }
+    var filled = day.slots.filter(function (s) { return s.filled; });
+    var open = day.slots.filter(function (s) { return !s.filled; });
+    var lines = [];
+
+    if (filled.length) {
+      lines.push(filled.map(function (s) {
+        return s.by + " has it — " + lowerFirst(s.dish) + ", arriving " + s.at + ".";
+      }).join(" "));
+    }
+    if (open.length) {
+      lines.push(filled.length
+        ? "There's still room for one more if you want it."
+        : dayName(day.iso) + " is wide open. It's yours if you want it.");
+    } else if (filled.length) {
+      lines.push(dayName(day.iso) + " is covered, sweetheart.");
+    }
+    lines.push(day.candle
+      ? "It's the Shabbos one — at the door by " + day.to + ", before candles at " + day.candle + "."
+      : "Window's " + day.from + " to " + day.to + ".");
+    return lines.join(" ");
+  }
+
+  function answerAbout(text) {
+    var t = text.toLowerCase();
+    var train = state.data.train;
+
+    /* A question about a specific day beats every generic answer. */
+    var day = findDayByName(text);
+    if (day) return [describeDay(day)];
+
+    /* A question about a specific person. */
+    var person = findPersonInText(text);
+    if (person) {
+      return [person.slot.by + " has " + dayName(person.day.iso) + " — " +
+        lowerFirst(person.slot.dish) + ", arriving " + person.slot.at + "."];
+    }
+
+    var open = openDays();
+
+    if (/cancel|can'?t make|something came up|drop out|back out/.test(t)) {
+      return ["Life happens, don't give it another thought. Tell me which night and I'll open it " +
+        "back up and quietly let the others know."];
+    }
+    if (/thank|todah|toda raba/.test(t)) {
+      return ["Don't thank me. Thank the " + train.neighborCount + " people who said yes. " +
+        "I only did the pestering."];
+    }
+    if (/(what|which|any|anything|something)[^?]{0,20}(open|left|available|free|still need)|still open|nights? left/.test(t)) {
+      return open.length
+        ? [listify(open.map(function (x) { return dayName(x.iso); })) + " " +
+           plural(open.length, "is", "are") + " still open." +
+           (open.filter(function (x) { return x.candle; }).length
+             ? " The Friday one has to be there before candles."
+             : "")]
+        : ["Not a single night left. Every one is spoken for."];
+    }
+    if (/who.*(bringing|cooking|sending|has|signed)|what.*everyone/.test(t)) {
+      var taken = filledSlots();
+      if (!taken.length) return ["Nobody yet. You could be the first."];
+      var byDay = [];
+      taken.forEach(function (x) {
+        var row = byDay.filter(function (r) { return r.id === x.day.id; })[0];
+        if (!row) { row = { id: x.day.id, day: x.day, names: [] }; byDay.push(row); }
+        row.names.push(x.slot.by);
+      });
+      return ["Here's the week so far: " + byDay.map(function (r) {
+        return dayName(r.day.iso) + " is " + listify(r.names);
+      }).join(", ") + "."];
+    }
+    if (/what.*bring|what should i|ideas|suggest|recommend/.test(t)) {
+      return ["They love " + listify(train.loves) + ". No nuts, and skip the " +
+        listify(train.dislikes) + ". Beyond that, whatever's easy for you — easy for you is the point."];
+    }
+    if (/allerg|nut/.test(t)) {
+      return [train.allergyNote + " " +
+        "Type your dish into the board and I'll check it before you cook a thing."];
+    }
+    if (/kosher|dairy|meat|pareve|hechsher|chalav/.test(t)) {
+      return [train.kosherLevel + ". " + train.hechshers];
+    }
+    if (/how many|headcount|family of|portions|how much/.test(t)) {
+      return ["Cooking for " + train.household + " — " + train.householdNote + ". " +
+        "Leftovers are a blessing."];
+    }
+    if (/where|address|drop|door|deliver to/.test(t)) {
+      return [train.address + ". " + train.dropoff];
+    }
+    if (/when|what time|deadline|candle|shabb/.test(t)) {
+      var fri = state.data.days.filter(function (x) { return x.candle; })[0];
+      return ["Most nights, 4:30 to 6:00." +
+        (fri ? " Friday's different — at the door by " + fri.to + ", before candles at " + fri.candle + "."
+             : "") + " I'll remind you either way."];
+    }
+    if (/^(hi|hello|hey|good morning|good evening|shalom)\b/.test(t)) {
+      return ["Hello sweetheart. " + (open.length
+        ? listify(open.map(function (x) { return dayName(x.iso); })) + " " +
+          plural(open.length, "is", "are") + " still open, if you're asking."
+        : "Everything's covered this week, so this is purely social.")];
+    }
+    if (/help|how do|how does|what do i/.test(t)) {
+      return ["Open the board, pick a night, tell me what you're bringing. That's the whole thing."];
+    }
+
+    return ["I'm not sure I follow, sweetheart — I'm better with the practical questions. " +
+      "Ask me who has which night, what's still open, what they eat, or when to be there."];
   }
 
   /* --- misc ------------------------------------------------------------------ */
@@ -1860,6 +2045,55 @@
       render();
     },
     "nudge": function () { nudge(); },
+
+    "ask-directly": function (el) {
+      var c = findContact(el.getAttribute("data-contact"));
+      if (!c) return;
+      var open = openDays();
+      state.sheet = null;
+      goldeSays([
+        "I wrote to " + c.name.split(" ")[0] + " myself, just her — no group, nobody watching.",
+        "I said: “" + (open.length
+          ? listify(open.map(function (x) { return dayName(x.iso); })) + " " +
+            plural(open.length, "is", "are") + " still open for the Cohens. Only if it fits your week."
+          : "Everything's covered — I just wanted to say thank you.") + "”"
+      ]);
+      goto("chat");
+      toast("Sent to " + c.name + " privately.");
+    },
+
+    "toggle-optin": function (el) {
+      var c = findContact(el.getAttribute("data-contact"));
+      if (!c) return;
+      c.optedIn = !c.optedIn;
+      render();
+      toast(c.optedIn
+        ? "Lovely. I'll keep " + c.name.split(" ")[0] + " in the loop."
+        : "Not another word to " + c.name.split(" ")[0] + " from me.");
+    },
+
+    "remove-contact": function (el) {
+      var id = el.getAttribute("data-contact");
+      var c = findContact(id);
+      state.data.contacts = state.data.contacts.filter(function (x) { return x.id !== id; });
+      render();
+      if (c) toast(c.name + " is off my list. No hard feelings.");
+    },
+
+    "nudge-unsigned": function () {
+      var contacts = state.data.contacts || [];
+      var unsigned = contacts.filter(function (c) { return c.optedIn && !contactStatus(c.name); });
+      var open = openDays();
+      if (!unsigned.length || !open.length) return;
+      goldeSays([
+        "I wrote to " + listify(unsigned.map(function (c) { return c.name.split(" ")[0]; })) +
+          " — separately, one at a time, not a group blast.",
+        "Nothing heavy. Just that " + listify(open.map(function (x) { return dayName(x.iso); })) + " " +
+          plural(open.length, "is", "are") + " open, and only if it fits their week."
+      ]);
+      goto("chat");
+      toast("Written to " + unsigned.length + ", one at a time.");
+    },
     "wrap": function () { wrapTrain(); },
 
     "toggle-allergy": function (el) {
@@ -1964,6 +2198,19 @@
   document.addEventListener("change", function (ev) {
     var el = ev.target;
     if (!el.getAttribute) return;
+
+    if (el.getAttribute("data-newcontact")) {
+      var name = el.value.trim();
+      el.value = "";
+      if (!name) return;
+      state.data.contacts.push({
+        id: "c" + (++state.slotSeq), name: name, phone: "+1 (555) 014-" +
+          (1000 + (state.slotSeq * 37) % 8999), optedIn: false
+      });
+      render();
+      toast(name + " is on my list. I'll ask her before I write to her.");
+      return;
+    }
 
     var field = el.getAttribute("data-field");
     if (field) {

@@ -67,7 +67,7 @@ between:
 
 - **Allergen alerts.** The Cohens carry a `no-nuts` tag. Type *pesto*, *pad thai*
   or *baklava* into a dish and Golde stops you gently before you cook — not at
-  the door. Toggle other tags (shellfish, gluten, eggs, sesame) in the Family view.
+  the door. Other tags (gluten, eggs, sesame) are togglable in the Family view; shellfish isn't offered — these households keep kosher.
 - **Kosher awareness.** Days can prefer meat / dairy / pareve. Type *brisket* on
   a dairy night and she mentions it. It's a suggestion, never a wall.
 - **Menu transparency + variety nudge.** Everyone sees the week's dishes.

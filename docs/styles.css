@@ -357,6 +357,27 @@ input, textarea, select { font: inherit; color: inherit; }
 .tag.love { background: var(--amber-wash); color: #7A5211; }
 .tag.dislike { background: var(--cream-deep); color: var(--ink-soft); }
 
+/* contact book */
+.contact {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 12px 0; border-top: 1px solid var(--line-soft);
+}
+.contact:first-of-type { border-top: 0; padding-top: 2px; }
+.contact-main { flex: 1 1 auto; min-width: 0; }
+.contact-name { font-size: 15px; font-weight: 600; }
+.contact-name .badge.quiet {
+  display: inline-block; font-size: 10.5px; font-weight: 700; letter-spacing: .05em;
+  text-transform: uppercase; color: var(--muted); background: var(--cream-deep);
+  border-radius: 999px; padding: 2px 7px; vertical-align: 1px;
+}
+.contact-sub { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.contact-state { font-size: 13.5px; color: var(--muted); font-style: italic; margin-top: 3px; }
+.contact-state.has { color: var(--green-soft); font-style: normal; }
+.contact-acts {
+  flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
+}
+.contact-acts .mini-link { font-size: 12.5px; white-space: nowrap; }
+
 .stats { display: flex; gap: 8px; margin-bottom: 14px; }
 .stat {
   flex: 1 1 0; background: var(--card); border: 1px solid var(--line-soft);
