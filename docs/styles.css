@@ -1,6 +1,7 @@
 /* ==========================================================================
    golde. meals — prototype styles
-   Brand: cream #FAF7F0, deep WhatsApp green #075E54, live green #25D366.
+   Brand: cream #FAF7F0, deep green #075E54, live green #25D366. Her own colours —
+   every WhatsApp cue (ticks, bubble green, patterned backdrop) is gone on purpose.
    Warm, rounded, generous. Never corporate.
    ========================================================================== */
 
@@ -105,8 +106,8 @@ input, textarea, select { font: inherit; color: inherit; }
 .statusbar {
   height: 30px; flex: 0 0 30px; z-index: 61;
   display: flex; align-items: center; justify-content: space-between;
-  padding: 0 22px; font-size: 12px; font-weight: 600; color: var(--ink);
-  background: var(--green); color: #fff;
+  padding: 0 22px; font-size: 12px; font-weight: 600;
+  background: #1D1B18; color: #F6F1E7;
 }
 .sb-right { display: inline-flex; gap: 5px; align-items: center; }
 .sb-bars, .sb-wifi, .sb-batt { display: inline-block; background: currentColor; border-radius: 2px; opacity: .9; }
@@ -139,7 +140,7 @@ input, textarea, select { font: inherit; color: inherit; }
   font-family: var(--serif); font-size: 19px;
   display: grid; place-items: center; flex: 0 0 auto;
 }
-.topbar-title { font-size: 16px; font-weight: 600; line-height: 1.2; }
+.topbar-mark { font-family: var(--serif); font-size: 22px; line-height: 1.1; letter-spacing: -.01em; }
 .topbar-sub { font-size: 12px; opacity: .82; line-height: 1.3; }
 .iconbtn {
   background: transparent; border: 0; color: inherit;
@@ -165,58 +166,70 @@ input, textarea, select { font: inherit; color: inherit; }
 
 .wordmark { font-family: var(--serif); color: var(--green); letter-spacing: -0.01em; }
 
-/* ---------- Chat surface -------------------------------------------------- */
+/* ---------- golde.'s page (was: a WhatsApp impersonation) -------------------
+   Deliberately NOT chat furniture. No green outgoing bubbles, no blue ticks,
+   no patterned backdrop, no group header. It reads as its own small site so
+   nobody thinks their real WhatsApp is behaving strangely.
+   -------------------------------------------------------------------------- */
 
-.chat-bg {
-  background-color: #EFE7D8;
-  background-image:
-    radial-gradient(rgba(7,94,84,.055) 1px, transparent 1.4px),
-    radial-gradient(rgba(176,114,30,.05) 1px, transparent 1.4px);
-  background-size: 26px 26px, 26px 26px;
-  background-position: 0 0, 13px 13px;
-  padding: 14px 12px 56px; /* clears the floating demo control */
+.feed-bg { background: var(--cream); padding: 16px 14px 60px; }
+
+.ask-card {
+  background: var(--card); border: 1px solid var(--line-soft); border-radius: var(--r-lg);
+  padding: 14px 15px; box-shadow: var(--shadow-card); margin-bottom: 14px;
 }
-.daystamp { text-align: center; margin: 6px 0 14px; }
-.daystamp span {
-  background: rgba(255,255,255,.85); color: var(--muted);
-  font-size: 12px; padding: 5px 12px; border-radius: 999px;
-  box-shadow: 0 1px 1px rgba(43,39,33,.06);
+.ask-head { font-size: 13.5px; color: var(--muted); margin-bottom: 10px; }
+.ask-head .wordmark { font-size: 16px; }
+.ask-form { display: flex; gap: 8px; align-items: center; }
+.ask-field {
+  flex: 1 1 auto; min-width: 0; border: 1.5px solid var(--line); border-radius: 999px;
+  padding: 11px 15px; font-size: 16px; background: var(--cream);
 }
-.msg-row { display: flex; margin-bottom: 8px; }
-.msg-row.out { justify-content: flex-end; }
-.bubble {
-  position: relative; max-width: 82%;
-  padding: 8px 11px 6px; border-radius: 14px;
-  background: #fff; box-shadow: 0 1px 1px rgba(43,39,33,.10);
-  font-size: 15px; line-height: 1.45; color: var(--ink);
+.ask-field:focus { border-color: var(--green-soft); outline: none; background: #fff; }
+.ask-send {
+  flex: 0 0 auto; width: 42px; height: 42px; border-radius: 50%; border: 0;
+  background: var(--green); color: #fff; display: grid; place-items: center;
+}
+.ask-send:hover { filter: brightness(1.1); }
+
+.share-btn {
+  display: flex; align-items: center; justify-content: center; gap: 9px;
+  width: 100%; border: 1.5px solid var(--line); background: var(--card);
+  border-radius: var(--r-md); padding: 13px; font-size: 15px; font-weight: 600;
+  color: var(--green); box-shadow: var(--shadow-card);
+}
+.share-btn:hover { background: var(--green-wash); }
+.share-sub { font-size: 12.5px; color: var(--muted); text-align: center; margin: 7px 0 0; }
+
+.notice {
+  position: relative; background: var(--card); border: 1px solid var(--line-soft);
+  border-radius: var(--r-md); padding: 12px 14px; margin-bottom: 10px;
+  font-size: 15px; line-height: 1.5; box-shadow: var(--shadow-card);
   cursor: pointer; -webkit-tap-highlight-color: transparent;
 }
-.msg-row.in .bubble  { border-top-left-radius: 4px; }
-.msg-row.out .bubble { background: #D9FDD3; border-top-right-radius: 4px; }
-.bubble .who {
-  display: block; font-size: 13px; font-weight: 700; margin-bottom: 2px;
-  color: var(--green-soft);
+.notice.from-golde { background: var(--green-wash); border-color: transparent; }
+.notice.mine { background: var(--cream-deep); border-color: transparent; }
+.notice-who {
+  display: flex; align-items: baseline; gap: 8px;
+  font-size: 13px; font-weight: 700; color: var(--green-soft); margin-bottom: 5px;
 }
-.bubble .who.golde { font-family: var(--serif); font-weight: 400; font-size: 15px; }
-.bubble p { margin: 0 0 6px; }
-.bubble p:last-of-type { margin-bottom: 0; }
-.meta { display: block; text-align: right; font-size: 11px; color: var(--muted); margin-top: 3px; }
-.meta .ticks { color: #34B7F1; letter-spacing: -3px; margin-left: 3px; font-size: 12px; }
+.notice-who .wordmark { font-weight: 400; font-size: 16px; }
+.notice-time { margin-left: auto; font-weight: 400; font-size: 11.5px; color: var(--muted); }
+.notice p { margin: 0 0 7px; }
+.notice p:last-of-type { margin-bottom: 0; }
 .reaction {
-  position: absolute; bottom: -11px; right: 10px;
+  position: absolute; bottom: -9px; right: 12px;
   background: #fff; border-radius: 999px; padding: 1px 6px;
-  font-size: 12px; box-shadow: 0 1px 3px rgba(43,39,33,.18);
-  animation: pop .22s ease;
+  font-size: 12px; box-shadow: 0 1px 3px rgba(43,39,33,.18); animation: pop .22s ease;
 }
 @keyframes pop { from { transform: scale(.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
-/* link preview card in the thread */
+/* golde.'s own link card — a card on her page, not a chat link preview */
 .linkcard {
-  margin: -2px -3px 6px; background: var(--cream); border-radius: 10px;
+  margin: 4px 0 8px; background: var(--card); border-radius: 12px;
   overflow: hidden; border: 1px solid var(--line-soft);
 }
 .linkcard .lc-top { padding: 12px 13px 11px; }
-/* Reads as link-preview metadata (the domain), not a second signature from Golde. */
 .linkcard .lc-mark {
   font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
   color: var(--muted);
@@ -225,38 +238,21 @@ input, textarea, select { font: inherit; color: inherit; }
 .linkcard .lc-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
 .linkcard .lc-open {
   display: block; width: 100%; text-align: center; border: 0; border-top: 1px solid var(--line-soft);
-  background: #fff; color: var(--green); font-weight: 700; font-size: 14px; padding: 12px;
+  background: var(--cream); color: var(--green); font-weight: 700; font-size: 14px; padding: 12px;
 }
 .linkcard .lc-open:hover { background: var(--green-wash); }
-.linkurl { font-size: 13px; color: var(--green-soft); word-break: break-all; }
 
-/* reminder / action card inside a bubble */
 .inline-card {
-  margin-top: 8px; border-top: 1px solid var(--line-soft); padding-top: 8px;
+  margin-top: 9px; border-top: 1px solid rgba(43,39,33,.09); padding-top: 9px;
   display: flex; gap: 8px; flex-wrap: wrap;
 }
 .chip-btn {
-  border: 1.5px solid var(--line); background: var(--cream);
+  border: 1.5px solid var(--line); background: var(--card);
   border-radius: 999px; padding: 7px 13px; font-size: 13px; font-weight: 600; color: var(--green);
 }
 .chip-btn:hover { background: var(--green-wash); }
 .chip-btn.solid { background: var(--green); color: #fff; border-color: var(--green); }
 .chip-btn.solid:hover { filter: brightness(1.1); }
-
-.composer {
-  flex: 0 0 auto; display: flex; align-items: flex-end; gap: 8px;
-  padding: 8px 10px 10px; background: #EFE7D8;
-}
-.composer .field {
-  flex: 1 1 auto; background: #fff; border-radius: 22px; border: 0;
-  padding: 11px 15px; font-size: 15px; resize: none; max-height: 90px; line-height: 1.35;
-  box-shadow: 0 1px 1px rgba(43,39,33,.10);
-}
-.composer .send {
-  flex: 0 0 auto; width: 44px; height: 44px; border-radius: 50%; border: 0;
-  background: var(--green-live); color: #fff; display: grid; place-items: center;
-}
-.composer .send:hover { filter: brightness(1.06); }
 
 /* ---------- Board surface ------------------------------------------------- */
 
@@ -481,7 +477,7 @@ input, textarea, select { font: inherit; color: inherit; }
 /* ---------- Demo control -------------------------------------------------- */
 
 .demo-fab {
-  position: absolute; right: 14px; bottom: 78px; z-index: 65;
+  position: absolute; right: 14px; bottom: 20px; z-index: 65;
   background: #1D1B18; color: #fff; border: 0; border-radius: 999px;
   padding: 9px 15px; font-size: 11.5px; font-weight: 700;
   letter-spacing: .13em; text-transform: uppercase;
@@ -517,7 +513,7 @@ input, textarea, select { font: inherit; color: inherit; }
 /* ---------- Toast --------------------------------------------------------- */
 
 .toast-host {
-  position: absolute; left: 12px; right: 12px; bottom: 84px; z-index: 66;
+  position: absolute; left: 12px; right: 12px; bottom: 74px; z-index: 66;
   display: flex; flex-direction: column; gap: 8px; pointer-events: none;
 }
 .toast {
@@ -540,9 +536,9 @@ input, textarea, select { font: inherit; color: inherit; }
   .notch { display: none; }
   .statusbar { display: none; }
   .sheet { max-height: 90%; }
-  .demo-fab { bottom: calc(78px + env(safe-area-inset-bottom)); }
+  .demo-fab { bottom: calc(20px + env(safe-area-inset-bottom)); }
   #phone[data-surface="board"] .demo-fab { bottom: calc(20px + env(safe-area-inset-bottom)); }
-  .composer { padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
+  .feed-bg { padding-bottom: calc(90px + env(safe-area-inset-bottom)); }
   .board-body { padding-bottom: calc(140px + env(safe-area-inset-bottom)); }
 }
 

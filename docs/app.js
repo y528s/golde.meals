@@ -571,47 +571,55 @@
     var t = state.data.train;
     var open = openDays().length;
 
+    /* This is golde.'s own page, not a chat app. It used to imitate WhatsApp —
+       the green, the ticks, the group header — and that made people think their
+       real WhatsApp had done something strange. It's a minisite now. It shares
+       *to* WhatsApp; it doesn't pretend to be inside it. */
     var html = "";
     html += '<header class="topbar">' +
-      '<div class="avatar" aria-hidden="true">g</div>' +
-      '<div><div class="topbar-title">' + esc(t.title) + '</div>' +
-      '<div class="topbar-sub">golde. + ' + t.neighborCount + ' neighbors</div></div>' +
-      '<button class="iconbtn" data-act="open-board" style="margin-left:auto" aria-label="Open the board">' +
-        icon("grid") + '</button>' +
-      '</header>';
+      '<div><div class="topbar-mark">golde.</div>' +
+      '<div class="topbar-sub">' + esc(t.title) + "</div></div>" +
+      '<button class="iconbtn" data-act="open-board" style="margin-left:auto" ' +
+        'aria-label="See the week">' + icon("grid") + "</button>" +
+      "</header>";
 
-    html += '<div class="viewing-as">You\'re in this thread as <em>' + esc(ROLES[state.role].who) + "</em></div>";
+    html += '<div class="viewing-as">Viewing as <em>' + esc(ROLES[state.role].label) + "</em></div>";
 
-    html += '<div class="scroller chat-bg" id="chat-scroll">';
+    html += '<div class="scroller feed-bg" id="chat-scroll">';
 
-    state.data.messages.forEach(function (m) {
-      if (m.stamp) html += '<div class="daystamp"><span>' + esc(m.stamp) + '</span></div>';
-      html += renderMessage(m);
-    });
+    html += '<div class="ask-card">' +
+      '<div class="ask-head"><span class="wordmark">golde.</span> — ask me anything about this week</div>' +
+      '<form class="ask-form" data-act="send">' +
+        '<input class="ask-field" id="composer-field" autocomplete="off" ' +
+          'placeholder="Who has Tuesday?" aria-label="Ask Golde a question">' +
+        '<button class="ask-send" type="submit" aria-label="Ask">' + icon("send") + "</button>" +
+      "</form></div>";
 
-    html += '</div>';
+    html += '<button class="share-btn" data-act="share">' + icon("share") +
+      " Send this to your group</button>" +
+      '<p class="share-sub">Opens WhatsApp so you can pick the chat. Nothing is sent until you send it.</p>';
 
-    html += '<form class="composer" data-act="send">' +
-      '<textarea class="field" id="composer-field" rows="1" placeholder="Message" ' +
-        'aria-label="Write a message"></textarea>' +
-      '<button class="send" type="submit" aria-label="Send">' + icon("send") + '</button>' +
-      '</form>';
+    html += '<div class="section-label" style="margin-top:22px">What\'s happened</div>';
+
+    state.data.messages.slice().reverse().forEach(function (m) { html += renderNotice(m); });
+
+    html += "</div>";
 
     void open;
     return html;
   }
 
-  function renderMessage(m) {
-    var isOut = m.dir === "out";
-    var h = '<div class="msg-row ' + (isOut ? "out" : "in") + '">';
-    h += '<div class="bubble" data-act="react" data-id="' + esc(m.id) + '" role="button" tabindex="0" ' +
-         'aria-label="Message from ' + esc(m.from === "golde" ? "golde" : m.from) + '. Tap to react.">';
+  /* One entry in the running record. Golde's own lines read as her; anything a
+     neighbor did reads as a plain fact, because that's what it is. */
+  function renderNotice(m) {
+    var mine = m.dir === "out";
+    var golde = m.from === "golde";
+    var h = '<div class="notice' + (golde ? " from-golde" : "") + (mine ? " mine" : "") + '" ' +
+      'data-act="react" data-id="' + esc(m.id) + '" role="button" tabindex="0">';
 
-    if (!isOut && m.from !== "golde") {
-      h += '<span class="who">' + esc(m.from) + '</span>';
-    } else if (m.from === "golde") {
-      h += '<span class="who golde">golde.</span>';
-    }
+    h += '<div class="notice-who">' +
+      (golde ? '<span class="wordmark">golde.</span>' : esc(mine ? "You" : m.from)) +
+      '<span class="notice-time">' + esc(m.time) + "</span></div>";
 
     if (m.card === "board") h += renderBoardCard();
     if (m.card === "donation") h += renderDonationCard();
@@ -622,15 +630,37 @@
       h += '<div class="inline-card">';
       m.actions.forEach(function (a) {
         h += '<button class="chip-btn' + (a.solid ? " solid" : "") + '" data-act="' + esc(a.act) + '"' +
-             (a.arg ? ' data-arg="' + esc(a.arg) + '"' : "") + '>' + esc(a.label) + "</button>";
+          (a.arg ? ' data-arg="' + esc(a.arg) + '"' : "") + ">" + esc(a.label) + "</button>";
       });
       h += "</div>";
     }
-
-    h += '<span class="meta">' + esc(m.time) + (isOut ? '<span class="ticks">✓✓</span>' : "") + "</span>";
     if (m.reaction) h += '<span class="reaction">' + esc(m.reaction) + "</span>";
-    h += "</div></div>";
+    h += "</div>";
     return h;
+  }
+
+  /* wa.me is the official, no-API way to hand off to WhatsApp: it opens the app
+     with the text ready and lets the person choose the chat or group. There is
+     no way to post into a group programmatically, and this is the honest
+     substitute — a human still presses send. */
+  function shareToWhatsApp() {
+    var t = state.data.train;
+    var open = openDays();
+    var lines = [
+      "Meals for " + t.recipientFamily + " — " + occasionText(t.occasion) + ".",
+      open.length
+        ? listify(open.map(function (x) { return dayName(x.iso) + " " + dateLabel(x.iso); })) +
+          " still " + plural(open.length, "needs", "need") + " somebody."
+        : "Every night is covered — this is just so you can see it.",
+      "Pick a night here: " + boardUrl()
+    ];
+    window.open("https://wa.me/?text=" + encodeURIComponent(lines.join("\n\n")), "_blank",
+      "noopener,noreferrer");
+    toast("WhatsApp should be opening. Choose the group and press send yourself.");
+  }
+
+  function boardUrl() {
+    return "golde.meals/the-cohens";
   }
 
   function renderBoardCard() {
@@ -645,9 +675,8 @@
         '<div class="lc-title">' + esc(t.title) + "</div>" +
         '<div class="lc-sub">' + esc(shortDate(t.start) + " – " + shortDate(t.end)) + " · " + esc(sub) + "</div>" +
       "</div>" +
-      '<button class="lc-open" data-act="open-board">Open the board</button>' +
-      "</div>" +
-      '<p class="linkurl">golde.meals/the-cohens</p>';
+      '<button class="lc-open" data-act="open-board">See the week</button>' +
+      "</div>";
   }
 
   function renderDonationCard() {
@@ -1585,10 +1614,12 @@
     if (surface === "chat") scrollChatToBottom();
   }
 
+  /* The newest notice sits directly under the ask box, so "up to date" means
+     the top of the page. Nothing to scroll to. */
   function scrollChatToBottom() {
     setTimeout(function () {
       var s = $("#chat-scroll");
-      if (s) s.scrollTop = s.scrollHeight;
+      if (s) s.scrollTop = 0;
     }, 30);
   }
 
@@ -2213,6 +2244,12 @@
       if (day) day.kosher = el.getAttribute("data-k");
       render();
     },
+    "share": function () { shareToWhatsApp(); },
+    "message-organizer": function () {
+      window.open("https://wa.me/15550142288?text=" +
+        encodeURIComponent("Hello — about the meals for the Cohens…"), "_blank", "noopener,noreferrer");
+      toast("Opening WhatsApp. It's a 555 number — it goes nowhere.");
+    },
     "nudge": function () { nudge(); },
 
     "ask-directly": function (el) {
@@ -2355,7 +2392,8 @@
 
   /* Enter-to-send in the composer, Shift+Enter for a new line. */
   document.addEventListener("keydown", function (ev) {
-    if (ev.target && ev.target.id === "composer-field" && ev.key === "Enter" && !ev.shiftKey) {
+    if (ev.target && ev.target.id === "composer-field" && ev.key === "Enter" && !ev.shiftKey &&
+        ev.target.tagName === "TEXTAREA") {
       ev.preventDefault();
       var v = ev.target.value;
       ev.target.value = "";
@@ -2440,13 +2478,13 @@
   function keepScroll(sel) {
     var el = $(sel);
     if (!el) return null;
-    return { top: el.scrollTop, atBottom: el.scrollHeight - el.scrollTop - el.clientHeight < 40 };
+    return { top: el.scrollTop, atTop: el.scrollTop < 40 };
   }
   function restoreScroll(sel, saved) {
     if (!saved) return;
     var el = $(sel);
     if (!el) return;
-    el.scrollTop = saved.atBottom ? el.scrollHeight : saved.top;
+    el.scrollTop = saved.atTop ? 0 : saved.top;
   }
 
   /* Tiny inline icon set — no network, no icon font. */
@@ -2456,6 +2494,9 @@
             'stroke-linecap="round" stroke-linejoin="round"/>',
       grid: '<path d="M4 6h16M4 12h16M4 18h16" fill="none" stroke="currentColor" stroke-width="2" ' +
             'stroke-linecap="round"/>',
+      share: '<path d="M4 12v7a1 1 0 001 1h14a1 1 0 001-1v-7M12 15V3m0 0L8 7m4-4l4 4" ' +
+             'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" ' +
+             'stroke-linejoin="round"/>',
       send: '<path d="M3.2 20.5l17.4-7.6a1 1 0 000-1.83L3.2 3.5a.85.85 0 00-1.2.86L2.9 9.6c.03.4.33.73.73.8L15 12l-11.37 1.6c-.4.06-.7.4-.73.8L2 19.64c-.04.65.6 1.12 1.2.86z" ' +
             'fill="currentColor"/>'
     };
