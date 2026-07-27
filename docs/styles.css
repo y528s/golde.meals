@@ -551,3 +551,11 @@ input, textarea, select { font: inherit; color: inherit; }
   letter-spacing: .05em; text-transform: uppercase; color: var(--green-soft);
   background: var(--green-wash); border-radius: 999px; padding: 2px 7px;
 }
+
+/* a recipe, written out by hand */
+.recipe-card {
+  background: var(--card); border: 1px solid var(--line-soft); border-left: 4px solid var(--amber);
+  border-radius: 12px; padding: 16px 18px;
+  font-family: var(--serif); font-size: 17px; line-height: 1.65; color: var(--ink);
+  white-space: pre-wrap;
+}

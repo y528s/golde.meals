@@ -59,7 +59,12 @@
           slots: [
             { id: "s1", filled: true, kind: "meal", by: "Rivky Weiss",
               dish: "Chicken soup with lokshen, and a roast chicken with lemon and potatoes",
-              at: "4:30", mine: false, delivered: false },
+              at: "4:30", mine: false, delivered: false,
+              recipeAsked: true,
+              recipe: "No measurements, I never use them. A whole chicken, cold water to cover, " +
+                "bring it up slow and skim the top. Carrots, celery, a parsnip, one onion with the " +
+                "skin on for colour. Dill at the end, never at the start. Salt more than you think. " +
+                "Lokshen cooked separate or they drink the whole pot." },
             { id: "s2", filled: true, kind: "groceries", by: "Yael Fried",
               dish: "A grocery drop — milk, eggs, coffee, fruit, and a real challah from the bakery",
               at: "5:30", mine: false, delivered: false }
@@ -848,6 +853,34 @@
       (slot.delivered ? ' <span class="badge done">delivered</span>' : "") +
       "</div>";
 
+    if (state.role === "family" && slot.kind === "meal" && !hideDish) {
+      h += '<div class="slot-actions">';
+      if (slot.recipe) {
+        h += '<button class="mini-link" data-act="see-recipe" data-slot="' + slot.id +
+          '">See the recipe</button>';
+      } else if (slot.recipeDeclined) {
+        h += '<span class="slot-by">Kept in the family — and quite right too.</span>';
+      } else if (slot.recipeAsked) {
+        h += '<span class="slot-by">Asked. No rush on them.</span>';
+      } else {
+        h += '<button class="mini-link" data-act="ask-recipe" data-slot="' + slot.id +
+          '">Could I have the recipe?</button>';
+      }
+      h += "</div>";
+    }
+
+    if (slot.mine && state.role === "neighbor" && slot.recipeAsked && !slot.recipe &&
+        !slot.recipeDeclined) {
+      h += '<div class="golde-note tight"><span class="gn-mark">golde.</span><span>' +
+        esc("Sarah asked for this recipe. Nobody has to write anything down — but she asked, " +
+            "and I thought you'd want to know.") + "</span>" +
+        "</div><div class=\"slot-actions\">" +
+        '<button class="mini-link" data-act="write-recipe" data-slot="' + slot.id +
+          '">Write it out for her</button>' +
+        '<button class="mini-link" data-act="decline-recipe" data-slot="' + slot.id +
+          '">I\'d rather not</button></div>';
+    }
+
     if (slot.mine && state.role === "neighbor") {
       h += '<div class="slot-actions">' +
         (slot.delivered ? "" :
@@ -983,8 +1016,8 @@
     var h = "";
 
     var lede = t.wrapped
-      ? "It's wrapped. Fourteen deliveries, one very grateful family, and twenty-three people who now know each " +
-        "other a little better. Go put your feet up."
+      ? "It's finished, and I've tucked it away. Nothing is lost — it just went quiet. " +
+        "Everything's still here whenever you want to look."
       : open.length
         ? "You've got " + listify(open.map(function (x) { return dayName(x.iso); })) + " still open. " +
           "I'll nudge the group whenever you say the word — gently, I promise. I never guilt anybody."
@@ -1183,6 +1216,18 @@
     h += '<div class="section-label">This week</div>';
     state.data.days.forEach(function (day) { h += dayCard(day); });
 
+    var kept = filledSlots().filter(function (x) { return x.slot.recipe; });
+    if (kept.length) {
+      h += '<div class="panel"><h3>Recipes they gave you</h3>' +
+        '<p class="lede">Yours to keep, long after the week is over.</p>';
+      kept.forEach(function (x) {
+        h += '<div class="fact"><dt>' + esc(x.slot.by.split(" ")[0]) + "</dt><dd>" +
+          '<button class="mini-link" data-act="see-recipe" data-slot="' + x.slot.id + '">' +
+          esc(cap(shortDish(x.slot.dish))) + "</button></dd></div>";
+      });
+      h += "</div>";
+    }
+
     h += '<div class="panel"><h3>When it\'s too much</h3>' +
       '<p class="lede">You\'re allowed to have enough. Say the word and I\'ll give everyone the week off — ' +
       'warmly, with no explanation owed to anybody, and I\'ll wave them back when you\'re ready.</p>';
@@ -1230,6 +1275,11 @@
     var contactField = host.querySelector("#claim-contact");
     if (contactField) {
       contactField.addEventListener("input", function () { state.form.contact = contactField.value; });
+    }
+    var recipeField = host.querySelector("#recipe-text");
+    if (recipeField) {
+      recipeField.addEventListener("input", function () { state.form.recipe = recipeField.value; });
+      setTimeout(function () { recipeField.focus(); }, 260);
     }
     var noteField = host.querySelector("#claim-note");
     if (noteField) {
@@ -1586,6 +1636,38 @@
         '<textarea id="r-drop" data-field="dropoff">' + esc(t.dropoff) + "</textarea></div>";
     return sheetShell("About the family", "", body,
       '<button class="btn block" data-act="close-sheet">Save it</button>');
+  };
+
+  /* --- recipes -------------------------------------------------------------- */
+
+  /* "Chicken soup with lokshen, and a roast chicken…" → "chicken soup recipe" */
+  function shortDish(dish) {
+    var d = String(dish).split(/,| with | and /)[0].trim().toLowerCase();
+    if (d.length > 32) d = d.slice(0, 32).replace(/\s+\S*$/, "");
+    return d + " recipe";
+  }
+
+  SHEETS.recipe = function (s) {
+    var loc = locateSlot(s.slotId);
+    if (!loc) return "";
+    var body = '<p class="golde-say">However you\'d tell it to a friend on the phone. ' +
+      'Nobody needs grams.</p>' +
+      '<div class="f"><label for="recipe-text">' + esc(cap(shortDish(loc.slot.dish))) + "</label>" +
+      '<textarea id="recipe-text" rows="8" placeholder="A whole chicken, cold water to cover, ' +
+        'bring it up slow and skim the top…">' + esc(state.form.recipe || "") + "</textarea></div>";
+    return sheetShell("For Sarah", esc(dayName(loc.day.iso) + "'s dinner"), body,
+      '<button class="btn block" data-act="save-recipe">Send it to her</button>' +
+      '<button class="btn block quiet" data-act="close-sheet">Not just now</button>');
+  };
+
+  SHEETS["recipe-view"] = function (s) {
+    var loc = locateSlot(s.slotId);
+    if (!loc || !loc.slot.recipe) return "";
+    var body = '<div class="recipe-card">' + esc(loc.slot.recipe) + "</div>" +
+      '<p class="golde-say" style="font-size:16px;color:var(--muted);margin-top:14px">' +
+      esc("From " + loc.slot.by + ", who made it for you on " + dayName(loc.day.iso) + ".") + "</p>";
+    return sheetShell(esc(cap(shortDish(loc.slot.dish))), "", body,
+      '<button class="btn block" data-act="close-sheet">Keep it</button>');
   };
 
   /* --- demo controls -------------------------------------------------------- */
@@ -2267,6 +2349,62 @@
         encodeURIComponent("Hello — about the meals for the Cohens…"), "_blank", "noopener,noreferrer");
       toast("Opening WhatsApp. It's a 555 number — it goes nowhere.");
     },
+    /* Asking for a recipe is the one thing the family gets to give back. It has
+       to land as a compliment, never as another errand for the cook. */
+    "ask-recipe": function (el) {
+      var loc = locateSlot(el.getAttribute("data-slot"));
+      if (!loc) return;
+      loc.slot.recipeAsked = true;
+      var first = loc.slot.by.split(" ")[0];
+      goldeSays([
+        first + ", Sarah asked for your " + shortDish(loc.slot.dish) + ".",
+        "She said they haven't stopped talking about it. Only if you feel like writing it out — " +
+          "and if it's your mother's and you'd rather keep it, that's an answer too."
+      ]);
+      goto("chat");
+      toast("Passed along. No pressure on them at all.");
+    },
+
+    "write-recipe": function (el) {
+      state.form = { recipe: "" };
+      openSheet("recipe", { slotId: el.getAttribute("data-slot") });
+    },
+
+    "save-recipe": function () {
+      var loc = locateSlot(state.sheet.slotId);
+      var text = (state.form.recipe || "").trim();
+      if (!loc) { closeSheet(); return; }
+      if (!text) {
+        toast("Write it however you'd tell it to a friend on the phone.");
+        return;
+      }
+      loc.slot.recipe = text;
+      loc.slot.recipeDeclined = false;
+      state.sheet = null;
+      goldeSays([
+        "I've given Sarah the recipe. She'll have it forever now, and every time she makes it " +
+          "she'll think of you. That's not nothing."
+      ]);
+      goto("chat");
+    },
+
+    "decline-recipe": function (el) {
+      var loc = locateSlot(el.getAttribute("data-slot"));
+      if (!loc) return;
+      loc.slot.recipeDeclined = true;
+      state.sheet = null;
+      goldeSays([
+        "Of course. Some recipes stay in the family and that's exactly as it should be.",
+        "I told Sarah it's a family one. She understood immediately — she's got two of those herself."
+      ]);
+      goto("chat");
+      toast("Handled. Nobody was made to feel awkward.");
+    },
+
+    "see-recipe": function (el) {
+      openSheet("recipe-view", { slotId: el.getAttribute("data-slot") });
+    },
+
     "nudge": function () { nudge(); },
 
     "ask-directly": function (el) {
