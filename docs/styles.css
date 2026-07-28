@@ -271,31 +271,74 @@ input, textarea, select { font: inherit; color: inherit; }
 .board-dates { font-size: 13.5px; color: var(--muted); }
 .board-body { padding: 12px 13px 110px; background: var(--cream); }
 
+/* ==========================================================================
+   Three kinds of thing, and you can tell which is which
+   --------------------------------------------------------------------------
+   "The sections are similar in colour, so I wasn't sure what all the different
+   sections do or mean. It is something I could work out, but it was taking me
+   time." Everything used to be a rounded cream box: her remarks, the reference
+   material, and the one night you were meant to take. Same weight, same
+   surface, no heading.
+
+   Now there are exactly three species and they do not resemble each other.
+
+     1. Golde talking     no card, no fill, a green rule down the left. It is
+                          speech, so it should look like speech.
+     2. Something to do   the only white card with a shadow, with a green edge
+                          and a real button. If it is white, you can act on it.
+     3. For reference     flat, tinted, no shadow. Clearly not a button.
+
+   Plus a heading over every group saying what the group is, in plain words.
+   ========================================================================== */
+
+/* 1. Her voice. */
 .golde-note {
   display: flex; gap: 9px; align-items: flex-start;
-  background: var(--green-wash); border-radius: var(--r-md);
-  padding: 10px 13px; font-size: 14.5px; line-height: 1.5; color: var(--ink-soft);
-  margin-bottom: 10px;
+  background: transparent; border-left: 3px solid var(--green-soft);
+  border-radius: 0; padding: 2px 0 2px 12px;
+  font-size: 15px; line-height: 1.5; color: var(--ink-soft);
+  margin: 0 0 14px;
 }
 .golde-note .gn-mark {
   font-family: var(--serif); color: var(--green); font-size: 15px; flex: 0 0 auto; line-height: 1.4;
 }
-.golde-note.warn { background: var(--amber-wash); color: #6C4A12; }
+.golde-note.warn { border-left-color: var(--amber); color: #6C4A12; background: transparent; }
 .golde-note.warn .gn-mark { color: var(--amber); }
-.golde-note.tight { padding: 10px 12px; font-size: 13.5px; margin: 10px 0 0; }
+.golde-note.tight { padding: 2px 0 2px 12px; font-size: 15px; margin: 10px 0 0; }
 
+/* Inside a sheet she is the only thing talking, so the rule is enough on its
+   own and the tint would only fight the sheet's own surface. */
+.sheet-body .golde-note { margin-bottom: 16px; }
+
+/* The heading over each group. Small, but it is the thing that answers "what
+   is this bit for", so it is not decoration and it does not get smaller. */
 .section-label {
-  font-size: 12px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
-  color: var(--muted); margin: 22px 0 10px;
+  font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--green); margin: 24px 0 9px;
+  padding-bottom: 6px; border-bottom: 1px solid var(--line);
 }
-.section-label:first-child { margin-top: 4px; }
+.section-label:first-child { margin-top: 2px; }
 
+/* The key under the week. Five words, and a tester's afternoon back. */
+.wk-key {
+  display: flex; gap: 16px; margin: -4px 0 16px 2px;
+  font-size: 13px; color: var(--muted);
+}
+.wk-key b { color: var(--green); font-size: 14px; }
+
+/* 2. Something to do. White, raised, with a green edge you can see from across
+   the room. Nothing else on the page looks like this. */
 .daycard {
   background: var(--card); border: 1px solid var(--line-soft); border-radius: var(--r-md);
-  padding: 12px 14px; margin-bottom: 9px; box-shadow: var(--shadow-card);
+  padding: 13px 15px; margin-bottom: 10px; box-shadow: var(--shadow-card);
 }
-.daycard.open { border-style: dashed; border-color: var(--line); background: #FFFDF8; }
-.daycard.off { background: transparent; box-shadow: none; border-style: dashed; }
+.daycard.open {
+  border-color: var(--line-soft); border-left: 4px solid var(--green);
+  background: var(--card); box-shadow: var(--shadow-card);
+}
+.daycard.off {
+  background: transparent; box-shadow: none; border-style: dashed; border-left-width: 1px;
+}
 .daycard.mine { border-color: var(--green-live); box-shadow: 0 0 0 2px rgba(37,211,102,.16), var(--shadow-card); }
 .dc-head { display: flex; align-items: baseline; gap: 8px; }
 .dc-day { font-family: var(--serif); font-size: 19px; color: var(--ink); }
@@ -336,10 +379,13 @@ input, textarea, select { font: inherit; color: inherit; }
 .mini-link.danger { color: var(--rose); }
 
 /* facts / preference panels */
+/* 3. For reference. Flat and tinted — it holds still while you read it, and it
+   never pretends to be a button. */
 .panel {
-  background: var(--card); border: 1px solid var(--line-soft); border-radius: var(--r-md);
-  padding: 14px; margin-bottom: 10px; box-shadow: var(--shadow-card);
+  background: var(--cream-deep); border: 0; border-radius: var(--r-md);
+  padding: 14px 15px; margin-bottom: 10px; box-shadow: none;
 }
+.panel h3 + .lede { margin-top: 2px; }
 .panel h3 { font-family: var(--serif); font-size: 18px; margin: 0 0 4px; font-weight: 400; }
 .panel .lede { font-size: 14px; color: var(--muted); margin: 0 0 14px; line-height: 1.5; }
 .fact { display: flex; gap: 10px; padding: 9px 0; border-top: 1px solid var(--line-soft); font-size: 14.5px; }
@@ -707,6 +753,7 @@ button, a, input, select, textarea, [role="button"] { min-height: 44px; }
 
 .fact, .slot-dish, .notice, .golde-note, .panel .lede { font-size: 16px; }
 .compact-day, .glance { font-size: 16px; }
+.compact-day { background: transparent; }
 .glance { padding: 15px 16px; }
 .compact-day { padding: 13px 4px; }
 

@@ -1118,9 +1118,14 @@
     var h = '<div class="slot">';
 
     if (!slot.filled) {
-      h += '<div class="slot-icon" aria-hidden="true">·</div><div class="slot-main">';
-      h += '<div class="slot-empty">' +
-        (slot.meal ? esc(cap(slot.meal)) + " \u2014 nobody yet." : "Nobody yet.") + "</div>";
+      h += '<div class="slot-main">';
+      /* "Nobody yet." sitting above a button that says "I'll take Tuesday" is
+         the same sentence twice, and repetition is what makes a page feel like
+         work. It stays only where it carries something the button doesn't. */
+      if (slot.meal || t.paused || state.role !== "sender") {
+        h += '<div class="slot-empty">' +
+          (slot.meal ? esc(cap(slot.meal)) + " \u2014 nobody yet." : "Nobody yet.") + "</div>";
+      }
       if (t.paused) {
         h += '<div class="slot-by">On hold — the family has enough this week.</div>';
       } else if (state.role === "sender") {
@@ -1240,6 +1245,19 @@
     return h + "</div>";
   }
 
+  /* voice-check: off — quoting a tester, whose spelling is his own business.
+     "The sections are similar in colour, so I wasn't sure what all the different
+     sections do or mean. It is something I could work out, but it was taking me
+     time." — a tester, and the fairest description of the problem anybody has
+     given. Nothing said what it was, everything was the same cream box, and the
+     one thing you are meant to act on looked like the reference material beside
+     it. So: a heading over every group, in plain words, and three kinds of
+     surface that do not resemble each other. See the note in styles.css.
+     voice-check: on */
+  function label(text) {
+    return '<div class="section-label">' + esc(text) + "</div>";
+  }
+
   function boardSender() {
     var t = state.data.train;
     var h = "";
@@ -1266,13 +1284,19 @@
         quiet:  "There's nothing anybody can say. So we cook. Tap a night with a + on it."
       });
     }
+    /* Show, don't tell. The week itself, before any words about the week — and
+       a five-word key under it, because a tester spent time working out what
+       the marks meant, and that time is the whole cost of the design. */
+    h += label("The week");
+    h += weekStrip();
+    h += '<div class="wk-key">' +
+      "<span><b>+</b> free</span><span><b>\u2022</b> taken</span><span><b>\u2713</b> yours</span>" +
+      "</div>";
     h += '<div class="golde-note"><span class="gn-mark">golde.</span><span>' + esc(lede) + "</span></div>";
 
-    /* Show, don't tell. The week itself, before any words about the week. */
-    h += weekStrip();
-
     if (mine.length) {
-      h += '<div class="panel"><h3>Your night' + (mine.length > 1 ? "s" : "") + "</h3>";
+      h += label("What you said you'd bring");
+      h += '<div class="panel">';
       mine.forEach(function (x) {
         h += '<div class="fact"><dt>' + esc(dayName(x.day.iso)) + "</dt><dd>" + esc(x.slot.dish) +
              '<br><span class="fact-sub">by ' + esc(x.day.to) + " pm" +
@@ -1283,13 +1307,6 @@
       h += "</div>";
     }
 
-    var vn = boardVarietyNote();
-    if (vn && !t.wrapped) {
-      h += '<div class="golde-note warn"><span class="gn-mark">golde.</span><span>' + esc(vn) + "</span></div>";
-    }
-
-    h += recipientPanel(false);
-
     /* No tabs. The nights that want something from you, in full; then the ones
        already sorted, one line each, folded away until somebody asks. */
     var needing = state.data.days.filter(function (day) {
@@ -1299,6 +1316,17 @@
     var settled = state.data.days.filter(function (day) {
       return day.needed && needing.indexOf(day) === -1;
     });
+
+    var free = needing.filter(function (day) {
+      return day.needed && day.slots.some(function (x) { return !x.filled; });
+    }).length;
+    h += label(free ? free + " " + plural(free, "night needs", "nights need") + " somebody"
+                    : "The nights");
+
+    var vn = boardVarietyNote();
+    if (vn && !t.wrapped) {
+      h += '<div class="golde-note warn"><span class="gn-mark">golde.</span><span>' + esc(vn) + "</span></div>";
+    }
 
     needing.forEach(function (day) { h += dayCard(day); });
 
@@ -1311,13 +1339,22 @@
       if (state.settledOpen) settled.forEach(function (day) { h += compactDay(day); });
     }
 
+    h += label("About the " + shortFamily(t));
+    h += recipientPanel(false, false);
+
     if (!t.wrapped && !t.paused) {
-      h += '<button class="btn block ghost" data-act="claim-nocook" style="margin-top:4px">' +
-        "Not a cook? Help another way</button>";
+      h += label("Not cooking?");
+      h += '<button class="btn block ghost" data-act="claim-nocook">' +
+        "There are other ways to help</button>";
     }
     h += helpFooter();
 
     return h;
+  }
+
+  /* "the Cohens" reads better in a heading than "the Cohen family". */
+  function shortFamily(t) {
+    return String(t.recipientFamily || "family").replace(/^the\s+/i, "").replace(/\s+family$/i, "");
   }
 
   /* --- the potluck board ----------------------------------------------------
@@ -1454,9 +1491,10 @@
 
   /* --- recipient facts panel ------------------------------------------------ */
 
-  function recipientPanel(editable) {
+  function recipientPanel(editable, titled) {
     var t = state.data.train;
-    var h = '<div class="panel"><h3>About ' + esc(t.recipientFamily) + "</h3>";
+    var h = '<div class="panel">' +
+      (titled === false ? "" : "<h3>About " + esc(t.recipientFamily) + "</h3>");
 
     /* The three things that decide what you cook. Everything else waits. */
     h += '<p class="lede" style="margin-bottom:10px">' +
@@ -1539,7 +1577,8 @@
        whole thing look like it had two halves. It is a place you go with a
        question, so it lives down here with the other two places you go with a
        question, and the board is just the board. */
-    return '<div class="help-row" style="margin-top:14px">' +
+    return '<div class="section-label">If you need something</div>' +
+      '<div class="help-row">' +
       '<button class="help-btn" data-act="open-chat">' + icon("chat") + " Ask golde.</button>" +
       '<button class="help-btn" data-act="keep-link">' + icon("link") + " Keep this link</button>" +
       "</div>" +
