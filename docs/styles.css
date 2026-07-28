@@ -720,7 +720,70 @@ button, a, input, select, textarea, [role="button"] { min-height: 44px; }
 .contact-acts { gap: 0; }
 
 /* These two carry instructions, not decoration: what to cook, and the hour it
-   has to be at the door before Shabbos. They were the last things below the
+   has to be at the door before Shabbat. They were the last things below the
    floor and they were the wrong two to have there. */
 .dc-pref { font-size: 13.5px; padding: 5px 11px; }
 .golde-note.tight { font-size: 15px; padding: 12px 14px; }
+
+/* The cover. Scaffolding for a prototype being passed around on its own —
+   a real person arrives from a link with context already attached. */
+.cover {
+  flex: 1 1 auto; overflow-y: auto;
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 32px 26px calc(32px + env(safe-area-inset-bottom));
+  background: var(--cream);
+}
+.cover-mark {
+  font-family: var(--serif); font-size: 46px; color: var(--green);
+  letter-spacing: -.02em; line-height: 1;
+}
+.cover-line {
+  font-family: var(--serif); font-size: 21px; line-height: 1.45;
+  color: var(--ink); margin: 16px 0 30px;
+}
+.cover-ways .btn { margin-bottom: 6px; }
+.cover-sub { font-size: 15px; color: var(--muted); margin: 0 0 22px; line-height: 1.5; }
+.cover-foot { font-size: 15px; color: var(--muted); margin: 8px 0 0; line-height: 1.5; }
+
+/* ==========================================================================
+   The potluck board
+   --------------------------------------------------------------------------
+   A row per thing somebody can bring, rather than a card per night. The two
+   facts people text the host about before they come — children, and the dog —
+   sit at the top as tags so nobody has to ask.
+   ========================================================================== */
+.tagrow { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; }
+.tagrow .tag {
+  background: var(--green-wash); color: var(--green);
+  font-size: 13.5px; padding: 6px 12px; margin: 0;
+}
+.tagrow .tag.warn { background: var(--amber-wash); color: #7A5211; }
+
+.potluck-list {
+  background: var(--card); border: 1px solid var(--line-soft);
+  border-radius: var(--r-md); overflow: hidden; box-shadow: var(--shadow-card);
+  margin-bottom: 4px;
+}
+.course { padding: 15px 16px; border-top: 1px solid var(--line-soft); }
+.course:first-child { border-top: 0; }
+.course-what { font-family: var(--serif); font-size: 19px; color: var(--ink); }
+.course-hint { font-size: 15px; color: var(--muted); margin-top: 3px; line-height: 1.45; }
+.course-dish { font-size: 16px; color: var(--ink); margin-top: 3px; }
+.course-by { font-size: 15px; color: var(--muted); margin-top: 2px; }
+.course.open { background: var(--green-wash); }
+.course.open .course-what { color: var(--green); }
+.course.filled .course-what { color: var(--muted); font-size: 16px; }
+.course.mine { box-shadow: inset 3px 0 0 var(--green); }
+
+/* The one control that turns the Jewish defaults off. Deliberately plain — it
+   is a setting somebody touches once, not a feature to advertise. */
+.calswitch {
+  display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap;
+  border-top: 1px solid var(--line-soft); margin-top: 12px; padding-top: 10px;
+  font-size: 15px; color: var(--muted); line-height: 1.45;
+}
+.calswitch span { flex: 1 1 190px; }
+
+/* The kosher wish is a button now, not a label. */
+button.dc-pref { border: 1px dashed transparent; }
+button.dc-pref:hover { border-color: currentColor; }

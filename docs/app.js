@@ -23,6 +23,7 @@
         recipientFamily: "the Cohens",
         recipientContact: "Sarah & Dovid Cohen",
         title: "Meals for the Cohens",
+        kind: "train",              // train | potluck — see "Potlucks and shared meals"
         occasion: "new-baby",
         start: "2026-08-02",
         end: "2026-08-08",
@@ -157,14 +158,14 @@
         {
           id: "m1", from: "golde", dir: "in", time: "10:02", stamp: "Today",
           text: [
-            "Good morning, everybody. Mazal tov — Sarah and Dovid Cohen had a baby girl on Motzei Shabbos. 💕",
+            "Good morning, everybody. Mazal tov — Sarah and Dovid Cohen had a baby girl on Motzei Shabbat. 💕",
             "Mother and baby are home, everyone is tired in the very best way, and nobody in that house should be thinking about dinner this week."
           ]
         },
         {
           id: "m2", from: "golde", dir: "in", time: "10:02",
           text: [
-            "I've set up a week of dinners, Sunday the 2nd through Shabbos. Nobody has to make a feast. A pot of something warm is plenty, and if cooking isn't your thing, there's another way to help — I'll show you."
+            "I've set up a week of dinners, Sunday the 2nd through Shabbat. Nobody has to make a feast. A pot of something warm is plenty, and if cooking isn't your thing, there's another way to help — I'll show you."
           ]
         },
         {
@@ -185,7 +186,7 @@
         {
           id: "m6", from: "golde", dir: "in", time: "10:16", card: "board",
           text: [
-            "Two nights still have nobody on them — Tuesday and Friday. Friday's the Shabbos one, so that one has to get there early, before candle-lighting.",
+            "Two nights still have nobody on them — Tuesday and Friday. Friday's the Shabbat one, so that one has to get there early, before candle-lighting.",
             "No pressure on anyone. But if a night is sitting there open on Sunday, I'm going to mention it again. You know me."
           ]
         }
@@ -199,7 +200,7 @@
 
   var state = {
     role: "neighbor",          // organizer | neighbor | family
-    surface: "setup",          // setup | chat | board
+    surface: "cover",          // cover | setup | chat | board
     setup: { i: 0, answers: {}, log: [{ me: false, text: ["Hello. What can I do for you?"] }] },
     data: seed(),
     filter: "open",            // open | all — what a neighbour actually came for
@@ -238,11 +239,22 @@
       .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   }
 
-  var DOW = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Shabbos"];
+  var DOW = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Shabbat"];
+
+  /* This was built for observant Jewish communities and the defaults say so:
+     Saturday is Shabbat, Friday has a deadline, and every night has a meat or
+     dairy wish on it. None of that is load-bearing. A tester asked whether the
+     week has to be Sunday-through-Shabbat and the honest answer is no — so the
+     Jewish furniture is one flag, and turning it off leaves a plain meal train
+     that works for any street. */
+  function isJewish() { return state.data.train.jewish !== false; }
   var MON = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
   function d(iso) { return new Date(iso + "T12:00:00"); }
-  function dayName(iso) { return DOW[d(iso).getDay()]; }
+  function dayName(iso) {
+    var i = d(iso).getDay();
+    return i === 6 && !isJewish() ? "Saturday" : DOW[i];
+  }
   function dateLabel(iso) { var x = d(iso); return MON[x.getMonth()] + " " + x.getDate(); }
   function shortDate(iso) { var x = d(iso); return MON[x.getMonth()].slice(0, 3) + " " + x.getDate(); }
   function isFriday(iso) { return d(iso).getDay() === 5; }
@@ -260,6 +272,7 @@
   /* Verified candle-lighting beats the hand-typed field, since it is a fact
      about the sun rather than somebody's recollection. */
   function candlesFor(day) {
+    if (!isJewish()) return null;
     return cal.candleLighting(day.iso) || day.candle || null;
   }
 
@@ -696,7 +709,7 @@
         'aria-label="See the week">' + icon("grid") + "</button>" +
       "</header>";
 
-    html += '<div class="viewing-as">Viewing as <em>' + esc(ROLES[state.role].label) + "</em></div>";
+    html += '<div class="viewing-as">Viewing as <em>' + esc(roleLabel()) + "</em></div>";
 
     html += '<div class="scroller feed-bg" id="chat-scroll">';
 
@@ -759,7 +772,7 @@
   function shareToWhatsApp() {
     var t = state.data.train;
     var open = openDays();
-    var lines = [
+    var lines = isPotluck() ? potluckShareLines(t) : [
       "Meals for " + t.recipientFamily + " — " + occasionText(t.occasion) + ".",
       open.length
         ? listify(open.map(function (x) { return dayName(x.iso) + " " + dateLabel(x.iso); })) +
@@ -772,23 +785,56 @@
     toast("WhatsApp should be opening. Choose the group and press send yourself.");
   }
 
+  /* What actually gets pasted into the group. The two things people ask before
+     they answer — when, and whether to bring the children — go in the message,
+     not behind a tap. */
+  function potluckShareLines(t) {
+    var day = state.data.days[0] || { slots: [] };
+    var open = day.slots.filter(function (s) { return !s.filled; });
+    var names = {};
+    open.forEach(function (s) {
+      var l = (COURSES[s.course] || COURSES.anything).label;
+      names[l] = (names[l] || 0) + 1;
+    });
+    var wanted = Object.keys(names).map(function (l) {
+      return names[l] > 1 ? names[l] + " × " + lowerFirst(l) : lowerFirst(l);
+    });
+    return [
+      t.title + " — " + dayName(t.start) + ", " + dateLabel(t.start) + ", " + t.whenTime + ".",
+      t.crowd === "adults" ? "Adults only, I'm afraid." : "Bring the children.",
+      open.length ? "Still needed: " + listify(wanted) + "."
+                  : "Everything's spoken for — this is just so you can see it.",
+      "Pick something here: " + boardUrl()
+    ];
+  }
+
   function boardUrl() {
-    return "golde.meals/the-cohens";
+    return isPotluck() ? "golde.meals/shared-meal" : "golde.meals/the-cohens";
   }
 
   function renderBoardCard() {
     var t = state.data.train;
     var open = openDays().length;
-    var sub = open === 0
-      ? "Every night is spoken for"
-      : open + " " + plural(open, "night", "nights") + " still open";
+    var sub;
+    if (isPotluck()) {
+      var left = (state.data.days[0] || { slots: [] }).slots
+        .filter(function (x) { return !x.filled; }).length;
+      sub = left === 0 ? "Everything's spoken for"
+                       : left + " " + plural(left, "thing", "things") + " still needed";
+    } else {
+      sub = open === 0
+        ? "Every night is spoken for"
+        : open + " " + plural(open, "night", "nights") + " still open";
+    }
     return '<div class="linkcard">' +
       '<div class="lc-top">' +
         '<div class="lc-mark">golde.meals</div>' +
         '<div class="lc-title">' + esc(t.title) + "</div>" +
-        '<div class="lc-sub">' + esc(shortDate(t.start) + " – " + shortDate(t.end)) + " · " + esc(sub) + "</div>" +
+        '<div class="lc-sub">' + esc(isPotluck() ? shortDate(t.start) + ", " + t.whenTime
+          : shortDate(t.start) + " – " + shortDate(t.end)) + " · " + esc(sub) + "</div>" +
       "</div>" +
-      '<button class="lc-open" data-act="open-board">See the week</button>' +
+      '<button class="lc-open" data-act="open-board">' +
+        (isPotluck() ? "See what's needed" : "See the week") + "</button>" +
       "</div>";
   }
 
@@ -815,15 +861,18 @@
         '<span class="board-mark">golde.</span>' +
       "</div>" +
       '<h1 class="board-h1">' + esc(t.title) + "</h1>" +
-      '<div class="board-dates">' + esc(dayName(t.start) + ", " + dateLabel(t.start)) + " through " +
-        esc(dayName(t.end) + ", " + dateLabel(t.end)) + " · " + esc(occasionText(t.occasion)) + "</div>" +
-      "</header>";
+      '<div class="board-dates">' + (isPotluck()
+        ? esc(dayName(t.start) + ", " + dateLabel(t.start) + " · " + t.whenTime)
+        : esc(dayName(t.start) + ", " + dateLabel(t.start)) + " through " +
+          esc(dayName(t.end) + ", " + dateLabel(t.end)) + " · " + esc(occasionText(t.occasion))) +
+      "</div></header>";
 
-    h += '<div class="viewing-as">Viewing as <em>' + esc(ROLES[state.role].label) + "</em>" +
+    h += '<div class="viewing-as">Viewing as <em>' + esc(roleLabel()) + "</em>" +
       '<button class="reset-inline" data-act="reset">reset demo</button></div>';
     h += '<div class="scroller" id="board-scroll"><div class="board-body">';
 
-    if (state.role === "organizer") h += boardOrganizer();
+    if (isPotluck()) h += boardPotluck();
+    else if (state.role === "organizer") h += boardOrganizer();
     else if (state.role === "family") h += boardFamily();
     else h += boardNeighbor();
 
@@ -840,6 +889,13 @@
     "new-to-community": { text: "new to the community",  tone: "bright" },
     "just-because":     { text: "just because",          tone: "bright" },
     "recovery":         { text: "recovery from surgery", tone: "tender" },
+    /* Reserve duty. The person called up is fine; it's whoever is left holding
+       the house and the children who needs feeding, often for weeks. */
+    "miluim":           { text: "miluim",                tone: "tender" },
+    /* Somebody typed their own reason. We do not know whether it is happy, so
+       she takes the warm middle register rather than guessing wrong in the
+       direction that would hurt. */
+    "other":            { text: "a hard stretch",        tone: "tender" },
     "shiva":            { text: "a shiva",               tone: "quiet"  }
   };
 
@@ -851,6 +907,7 @@
   function byTone(map) { return map[tone()] || map.bright; }
 
   function occasionText(key) {
+    if (key === "other" && state.data.train.occasionText) return state.data.train.occasionText;
     return (OCCASIONS[key] || OCCASIONS["new-baby"]).text;
   }
 
@@ -884,10 +941,15 @@
       return h;
     }
 
-    if (day.kosher !== "any") {
-      var pretty = { meat: "hoping for meat", dairy: "hoping for dairy", pareve: "hoping for pareve" }[day.kosher];
-      h += '<span class="dc-pref ' + day.kosher + '">' + esc(pretty) + "</span>";
-    }
+    /* The kosher preference used to sit on every card, where it was noise on the
+       six nights you aren't taking. It matters at exactly one moment — when you
+       are typing a dish — so it lives in the claim sheet now. The planner still
+       sees it here, because setting it is their job. */
+    /* "Hoping for meat" is off the cards altogether now, on every role. It was
+       a pill on twenty rows that mattered at exactly one moment — when somebody
+       is typing a dish — so it lives in the sign-up sheet and nowhere else. The
+       planner still sets it, under "Edit this day", where you go when you want
+       to change something rather than when you are reading the week. */
 
     var stop = cal.noCookingOn(day.iso);
     if (stop) {
@@ -897,9 +959,9 @@
 
     var candles = candlesFor(day);
     if (candles) {
-      var parsha = cal.parshaFor(day.iso);
+      var parsha = isJewish() ? cal.parshaFor(day.iso) : null;
       h += '<div class="golde-note warn tight"><span class="gn-mark">golde.</span><span>' +
-        (parsha ? "Parshas " + esc(parsha) + ". " : "") +
+        (parsha ? "Parashat " + esc(parsha) + ". " : "") +
         "Candles at " + esc(candles) + ". Dinner has to be at the door by " + esc(day.to) +
         " — earlier if you can.</span></div>";
     }
@@ -993,8 +1055,57 @@
       "</div>";
   }
 
-  var KIND_ICON = { meal: "🍲", groceries: "🧺", giftcard: "💌", orderin: "🛵" };
-  var KIND_LABEL = { meal: "", groceries: "Groceries", giftcard: "Gift card", orderin: "Ordering in" };
+  /* Not everybody cooks, and a family flattened by a new baby or a shiva needs
+     more than dinner anyway. These are the things people actually do instead.
+
+     Worded to survive being forwarded: "a gift card or voucher" rather than a
+     brand or one country's word for one, "a lift" rather than a carpool, "the
+     children" rather than anybody's school system. Nothing here assumes a
+     delivery app exists in your city. */
+  var KINDS = [
+    { key: "groceries", icon: "🧺", label: "Groceries",
+      chip: "🧺 A grocery shop",
+      ask: "What are you picking up?",
+      eg: "Milk, eggs, coffee, and something for the little ones" },
+    { key: "orderin", icon: "🛵", label: "Ordering in",
+      chip: "🛵 Order food in for them",
+      ask: "What are you sending, and when?",
+      eg: "Pizza on Tuesday, from the place on the corner" },
+    { key: "giftcard", icon: "💌", label: "Gift card",
+      chip: "💌 A gift card or voucher",
+      ask: "Anything you want them to know?",
+      eg: "For the kosher shop on Main Street \u2014 no rush to use it" },
+    { key: "childcare", icon: "🧸", label: "Childcare",
+      chip: "🧸 Take the children for a bit",
+      ask: "When are you free?",
+      eg: "Sunday morning \u2014 I'll take them to the park and feed them" },
+    { key: "lift", icon: "🚗", label: "A lift",
+      chip: "🚗 Drive them somewhere",
+      ask: "Where to, and when?",
+      eg: "The hospital appointment on Thursday, or the school run any morning" },
+    { key: "paper", icon: "🍽️", label: "Paper goods",
+      chip: "🍽️ Plates, cups, cutlery",
+      ask: "Anything you want them to know?",
+      eg: "Enough disposables for the week, so nobody is washing up" },
+    { key: "house", icon: "🧽", label: "A hand in the house",
+      chip: "🧽 A hand around the house",
+      ask: "What are you offering?",
+      eg: "A load of laundry, or an hour of tidying while the baby sleeps" }
+  ];
+
+  function kindDef(key) {
+    return KINDS.filter(function (k) { return k.key === key; })[0] || KINDS[0];
+  }
+
+  var KIND_ICON = { meal: "🍲" };
+  var KIND_LABEL = { meal: "" };
+  KINDS.forEach(function (k) { KIND_ICON[k.key] = k.icon; KIND_LABEL[k.key] = k.label; });
+
+  /* "Tuesday" on an ordinary day, "Tuesday lunch" when the day is split in two.
+     Nobody should have to guess which of two identical buttons is which. */
+  function slotWhen(day, slot) {
+    return dayName(day.iso) + (slot.meal ? " " + slot.meal : "");
+  }
 
   function slotRow(day, slot) {
     var t = state.data.train;
@@ -1002,12 +1113,13 @@
 
     if (!slot.filled) {
       h += '<div class="slot-icon" aria-hidden="true">·</div><div class="slot-main">';
-      h += '<div class="slot-empty">Nobody yet.</div>';
+      h += '<div class="slot-empty">' +
+        (slot.meal ? esc(cap(slot.meal)) + " \u2014 nobody yet." : "Nobody yet.") + "</div>";
       if (t.paused) {
         h += '<div class="slot-by">On hold — the family has enough this week.</div>';
       } else if (state.role === "neighbor") {
         h += '<div class="slot-actions"><button class="btn sm" data-act="claim" data-day="' + day.id +
-             '" data-slot="' + slot.id + '">I\'ll take ' + esc(dayName(day.iso)) + "</button>" +
+             '" data-slot="' + slot.id + '">I\'ll take ' + esc(slotWhen(day, slot)) + "</button>" +
              '<button class="btn sm ghost" data-act="claim-nocook" data-day="' + day.id +
              '" data-slot="' + slot.id + '">I don\'t cook</button></div>';
       } else if (state.role === "organizer") {
@@ -1027,6 +1139,7 @@
     h += '<div class="slot-main">';
     h += '<div class="slot-dish">' + esc(hideDish ? "Something warm is coming. You asked me not to spoil it, so my lips are sealed." : slot.dish) + "</div>";
     h += '<div class="slot-by">' + esc(slot.by) + " · arriving " + esc(slot.at) +
+      (slot.meal ? ' <span class="badge">' + esc(cap(slot.meal)) + "</span>" : "") +
       (KIND_LABEL[slot.kind] ? ' <span class="badge">' + esc(KIND_LABEL[slot.kind]) + "</span>" : "") +
       (slot.delivered ? ' <span class="badge done">delivered</span>' : "") +
       "</div>";
@@ -1175,6 +1288,138 @@
     return h;
   }
 
+  /* --- the potluck board ----------------------------------------------------
+     Two roles, not three. Whoever is hosting is also the one organising, and
+     everybody else is bringing a dish — there is no third person sitting at home
+     waiting to be fed. Showing an empty "Recipient" view would have been the
+     square peg. */
+
+  function boardPotluck() {
+    var t = state.data.train;
+    var host = state.role === "organizer";
+    var day = state.data.days[0];
+    if (!day) return "";
+    var open = day.slots.filter(function (s) { return !s.filled; });
+    var taken = day.slots.filter(function (s) { return s.filled; });
+    var mine = day.slots.filter(function (s) { return s.filled && s.mine; });
+
+    var h = "";
+    var lede;
+    if (!taken.length) {
+      lede = host
+        ? "Nothing on it yet. Send it round — people are quicker than you'd think once " +
+          "they can see what's missing."
+        : "Nobody's picked anything yet, so you have your pick of the lot.";
+    } else if (!open.length) {
+      lede = "Every last thing is spoken for. That is a table.";
+    } else {
+      lede = open.length + " " + plural(open.length, "thing", "things") + " still " +
+        plural(open.length, "needs", "need") + " somebody" +
+        (host ? ". I'd give it a nudge." : ". Take whichever you fancy.");
+    }
+    h += '<div class="golde-note"><span class="gn-mark">golde.</span><span>' + esc(lede) + "</span></div>";
+
+    /* The two things people text the host about before they come. On the board,
+       so nobody has to ask. */
+    h += '<div class="tagrow">' +
+      '<span class="tag">' + esc(atTheTable(t)) + "</span>" +
+      '<span class="tag' + (t.crowd === "adults" ? " warn" : "") + '">' +
+        (t.crowd === "adults" ? "Adults only" : "Children welcome") + "</span>" +
+      '<span class="tag' + (t.pets === "resident" ? " warn" : "") + '">' +
+        esc(PETS_TEXT[t.pets] || PETS_TEXT.none) + "</span>" +
+      "</div>";
+    if (host) {
+      h += '<div class="slot-actions">' +
+        '<button class="mini-link" data-act="toggle-crowd">' +
+          (t.crowd === "adults" ? "Actually, children are welcome" : "Actually, adults only") +
+        "</button>" +
+        '<button class="mini-link" data-act="cycle-pets">Change the pets line</button></div>';
+    }
+
+    if (t.allergies.length || t.otherAllergies) {
+      h += '<div class="golde-note warn"><span class="gn-mark">golde.</span><span>' +
+        esc(cap(allergySummary(t)) + ". I'll say something if what somebody types " +
+            "sounds like it — nobody has to remember.") + "</span></div>";
+    }
+
+    if (mine.length) {
+      h += '<div class="panel"><h3>What you\'re bringing</h3>' +
+        '<p class="lede">I\'ll remind you the day before, so you can stop thinking about it.</p>';
+      mine.forEach(function (s) {
+        h += '<div class="fact"><dt>' + esc(COURSES[s.course] ? COURSES[s.course].label : "Your dish") +
+          "</dt><dd>" + esc(s.dish) + "</dd></div>";
+      });
+      h += '<div class="fact"><dt>Where</dt><dd>' + esc(t.address) + "</dd></div>";
+      h += '<div class="fact"><dt>When</dt><dd>' + esc(dayName(day.iso) + ", " + t.whenTime) +
+        "</dd></div>";
+      h += "</div>";
+    }
+
+    h += '<div class="potluck-list">';
+    day.slots.forEach(function (s) { h += courseRow(day, s, host); });
+    h += "</div>";
+
+    if (host) {
+      h += '<div class="slot-actions" style="margin-top:12px">' +
+        '<button class="mini-link" data-act="add-course">Add another thing to bring</button></div>';
+      h += '<button class="btn block" data-act="share" style="margin-top:14px">' +
+        "Send this to your group</button>";
+    }
+    h += helpFooter();
+    return h;
+  }
+
+  function courseRow(day, slot, host) {
+    var c = COURSES[slot.course] || COURSES.anything;
+    var h = '<div class="course' + (slot.filled ? " filled" : " open") +
+      (slot.mine ? " mine" : "") + '">';
+    h += '<div class="course-what">' + esc(c.label) + "</div>";
+
+    if (!slot.filled) {
+      if (c.hint) h += '<div class="course-hint">' + esc(c.hint) + "</div>";
+      h += '<div class="slot-actions">';
+      if (host) {
+        h += '<button class="mini-link" data-act="claim" data-day="' + day.id + '" data-slot="' +
+          slot.id + '">Put someone down</button>' +
+          '<button class="mini-link danger" data-act="remove-slot" data-day="' + day.id +
+          '" data-slot="' + slot.id + '">Take this off</button>';
+      } else {
+        h += '<button class="btn sm" data-act="claim" data-day="' + day.id + '" data-slot="' +
+          slot.id + '">I\'ll bring this</button>';
+      }
+      h += "</div></div>";
+      return h;
+    }
+
+    h += '<div class="course-dish">' + esc(slot.dish) + "</div>";
+    h += '<div class="course-by">' + esc(slot.by) + (slot.mine ? " — that's you" : "") + "</div>";
+    if (slot.mine) {
+      h += '<div class="slot-actions">' +
+        '<button class="mini-link" data-act="edit-slot" data-slot="' + slot.id + '">Change it</button>' +
+        '<button class="mini-link danger" data-act="cancel" data-slot="' + slot.id +
+        '">I can\'t make it</button></div>';
+    } else if (host) {
+      h += '<div class="slot-actions">' +
+        '<button class="mini-link" data-act="edit-slot" data-slot="' + slot.id + '">Change the details</button>' +
+        '<button class="mini-link danger" data-act="reopen" data-slot="' + slot.id + '">Reopen it</button></div>';
+    }
+    h += "</div>";
+    return h;
+  }
+
+  function roleLabel() {
+    if (isPotluck()) return state.role === "organizer" ? "Host" : "Bringing something";
+    return ROLES[state.role].label;
+  }
+
+  /* Nobody counts a potluck the way they count a meal train. "8 to feed" is what
+     a cook needs; "about eight of us, four of them small" is what a host needs. */
+  function atTheTable(t) {
+    var n = (Number(t.adults) || 0) + (Number(t.teens) || 0) + (Number(t.littles) || 0);
+    var small = (Number(t.littles) || 0);
+    return "About " + n + " at the table" + (small ? ", " + small + " of them small" : "");
+  }
+
   /* --- recipient facts panel ------------------------------------------------ */
 
   function recipientPanel(editable) {
@@ -1241,6 +1486,21 @@
 
   /* Two things any real user needs within reach: a person, and somewhere to
      complain. Both are mailto/wa.me — no backend, works from day one. */
+  /* A tester asked whether the week really has to run Sunday-through-Shabbat.
+     It doesn't. This is the one control that turns the Jewish defaults off: the
+     seventh day goes back to being Saturday, the meat-or-dairy wish disappears,
+     and candle-lighting stops being a deadline. Everything else is the same
+     product. It sits on the planner's board because it is their call, once. */
+  function calendarSwitch() {
+    var on = isJewish();
+    return '<div class="calswitch">' +
+      "<span>" + (on ? "Jewish calendar on — Shabbat, candle-lighting, meat and dairy."
+                     : "Plain calendar — Saturday, no candle-lighting, no meat-or-dairy wish.") +
+      "</span>" +
+      '<button class="mini-link" data-act="toggle-jewish">' +
+        (on ? "Turn it off" : "Turn it back on") + "</button></div>";
+  }
+
   function helpFooter() {
     var t = state.data.train;
     return '<button class="help-btn wide" data-act="keep-link" style="margin-top:14px">' +
@@ -1298,6 +1558,7 @@
       '<div class="golde-note tight"><span class="gn-mark">golde.</span><span>Stretch the dates and I\'ll add ' +
         'the new days empty. Shorten them and I\'ll quietly let anyone affected know — nobody gets dropped ' +
         'without hearing it from me first.</span></div>' +
+      calendarSwitch() +
       '<button class="mini-link" data-act="toggle-train">Done</button>' +
       "</div>";
     }
@@ -1370,8 +1631,13 @@
     var quiet = contacts.filter(function (c) { return !c.optedIn && c.channel !== "calendar"; });
 
     var h = '<div class="panel"><h3>Your people</h3>' +
-      '<p class="lede">Everyone I can reach, and where they are this week. I message people one ' +
-      'at a time — a reminder in a group chat is just noise.</p>';
+      /* A tester asked whether this comes from her phone's address book. It does
+         not, and saying so is worth a line: every name here was typed by the
+         person themselves when they took a night, or by the planner by hand. */
+      '<p class="lede">Everyone I can reach, and where they are this week. Nobody is here ' +
+      'unless they signed up and gave me a number, or you added them yourself — I have no ' +
+      'idea what is in your phone. I message people one at a time; a reminder in a group ' +
+      'chat is just noise.</p>';
 
     var needsSomething = contacts.filter(function (c) { return !c.optedIn || !contactStatus(c.name); });
     var settled = contacts.filter(function (c) { return c.optedIn && contactStatus(c.name); });
@@ -1596,12 +1862,95 @@
      here that is not an imitation, it is the medium.
      =========================================================================== */
 
+  /* ---------------------------------------------------------------------------
+     Potlucks and shared meals
+     ---------------------------------------------------------------------------
+     A meal train and a potluck are both a community feeding somebody, and that
+     is where the similarity ends. A train is many nights, one household, one
+     cook per night; the axis is time. A potluck is one sitting, many households,
+     one dish each; the axis is the table. Forcing a potluck through the day
+     cards would have produced a week-long board with six empty days on it.
+
+     So it shares the parts that really are shared — the claim sheet, the allergy
+     checks, the share link, the reminders, the calendar file — and has its own
+     board. Roughly a hundred lines, and none of them are pretending.
+     --------------------------------------------------------------------------- */
+
+  var WHEN_OPTIONS = [
+    { value: "2026-08-05", label: "A weeknight",   time: "6:30 in the evening" },
+    { value: "2026-08-07", label: "Friday night",  time: "after shul" },
+    { value: "2026-08-08", label: "Shabbat lunch", time: "after shul, about half twelve" },
+    { value: "2026-08-09", label: "Sunday",        time: "5:30 in the afternoon" }
+  ];
+  function WHEN_CHIPS() {
+    return WHEN_OPTIONS.map(function (o) { return { label: o.label, value: o.value }; });
+  }
+  function whenOption(iso) {
+    return WHEN_OPTIONS.filter(function (o) { return o.value === iso; })[0] || WHEN_OPTIONS[2];
+  }
+
+  var GATHERINGS = {
+    "shabbat":      { text: "a Shabbat meal",   tone: "bright" },
+    "yomtov":       { text: "a yom tov meal",   tone: "bright" },
+    "simcha":       { text: "a simcha",         tone: "bright" },
+    "welcome":      { text: "welcoming somebody", tone: "bright" },
+    "just-because": { text: "no reason at all", tone: "bright" }
+  };
+
+  /* What a slot is, when it isn't a night. The hint is what she says under it on
+     the board, because "a side" means nothing to somebody standing in a shop. */
+  var COURSES = {
+    main:     { label: "Something hot",     hint: "a tray, a pot, a roast — something that feeds a crowd" },
+    side:     { label: "A side",            hint: "rice, potatoes, a kugel" },
+    salad:    { label: "A salad",           hint: "green, or not" },
+    bread:    { label: "Challah or bread",  hint: "" },
+    dessert:  { label: "Something sweet",   hint: "or fruit. Nobody minds fruit." },
+    drinks:   { label: "Drinks",            hint: "wine, juice, something for the children" },
+    anything: { label: "Anything you like", hint: "your call entirely" }
+  };
+
+  var SPREADS = {
+    full:   ["main", "main", "side", "side", "salad", "bread", "dessert", "dessert", "drinks"],
+    extras: ["side", "side", "salad", "salad", "bread", "dessert", "dessert", "drinks"],
+    sweet:  ["dessert", "dessert", "dessert", "drinks"],
+    manual: ["anything", "anything", "anything", "anything"]
+  };
+
+  var PETS_TEXT = {
+    none:     "No pets in the house",
+    resident: "There's a dog in the house",
+    welcome:  "Bring your dog if you like"
+  };
+
+  var POT_ROLES = {
+    organizer: { label: "Host",               blurb: "Whose house it is" },
+    neighbor:  { label: "Bringing something", blurb: "Takes a dish" }
+  };
+
+  function isPotluck() { return state.data.train.kind === "potluck"; }
+
+  /* Steps carry a `when`, and the two kinds of thing she can set up share most of
+     them. A meal train and a potluck are not the same shape — one household eats
+     for a week, or one evening eats from twenty households — so the questions
+     that differ are separate steps rather than one question with a limp in it. */
+  function isTrain(a) { return a.kind !== "potluck"; }
+  function isPot(a) { return a.kind === "potluck"; }
+
   var SETUP = [
+    /* "I need a meal train" was the only answer here, and a tester read it as
+       ambiguous: am I asking for one, or offering to run one? Both chips now
+       start with "I'm setting up", because for now that is the only thing she
+       does — nobody can ask her to send them meals. */
     { id: "start",
+      store: "kind",
       say: function () { return ["Hello. What can I do for you?"]; },
-      chips: [{ label: "I need a meal train", value: "yes" }] },
+      chips: [
+        { label: "I'm setting up meals for somebody", value: "train" },
+        { label: "I'm setting up one meal we all bring to", value: "potluck" }
+      ] },
 
     { id: "family",
+      when: isTrain,
       say: function () { return ["Of course. Who are we feeding?"]; },
       input: { placeholder: "The Cohen family", send: "That's them" },
       /* Asked once, never twice — whatever comes back the second time is taken
@@ -1613,18 +1962,72 @@
                "The Greens, Adam and Debbie — or Yaya, if that's what everybody says.";
       } },
 
+    /* --- the potluck branch -------------------------------------------------
+       "Potluck" is not a word everybody uses, so she doesn't lead with it. The
+       chip says what happens; she supplies the label afterwards, the way you'd
+       say "a potluck, we used to call it a bring-a-dish". */
+    { id: "host",
+      when: isPot,
+      say: function () {
+        return ["Lovely. A potluck, a bring-a-dish, a shared meal — whatever your " +
+                  "lot call it, I can keep the list straight.",
+                "Whose house is everybody coming to?"];
+      },
+      input: { placeholder: "the Bergers", send: "That's them" },
+      check: function (v) {
+        if (!looksLikeRelationship(v)) return null;
+        return "That tells me who they are to you. What will everybody else call it? " +
+               "The Bergers, Malky and Shimmy — or just my house, if that's the sort of crowd it is.";
+      } },
+
+    { id: "gathering",
+      when: isPot,
+      say: function () { return ["And what are we all coming for?"]; },
+      chips: [
+        { label: "A Shabbat meal", value: "shabbat" },
+        { label: "A yom tov meal", value: "yomtov" },
+        { label: "A simcha", value: "simcha" },
+        { label: "Welcoming somebody", value: "welcome" },
+        { label: "No reason at all", value: "just-because" }
+      ] },
+
+    { id: "when",
+      when: isPot,
+      say: function (a) {
+        return [{ "shabbat": "When are you sitting down?",
+                  "yomtov": "When are you sitting down?",
+                  "simcha": "Mazal tov. When is it?",
+                  "welcome": "How nice. When is it?",
+                  "just-because": "Good for you. When is it?" }[a.gathering] || "When is it?"];
+      },
+      chips: WHEN_CHIPS() },
+
     { id: "occasion",
+      when: isTrain,
       say: function (a) { return ["And what's happened for " + a.family + ", if I may ask?"]; },
+      /* "Just moved in" and "New here" were the same answer twice, and "No reason"
+         was a chip nobody picked. Miluim earns its place: around here a family
+         can be cooked for all month because somebody is on reserve duty. And
+         there is now an "other", because the list will never be complete. */
       chips: [
         { label: "A baby", value: "new-baby" },
         { label: "A shiva", value: "shiva" },
-        { label: "Surgery", value: "recovery" },
-        { label: "Just moved in", value: "moving-in" },
-        { label: "New here", value: "new-to-community" },
-        { label: "No reason", value: "just-because" }
+        { label: "Surgery or illness", value: "recovery" },
+        { label: "Just moved", value: "moving-in" },
+        { label: "Miluim", value: "miluim" },
+        { label: "Something else", value: "other" }
       ] },
 
+    { id: "occasionOther",
+      when: function (a) { return a.occasion === "other"; },
+      say: function () {
+        return ["Tell me what's happened, in your words. I'll put it on the board " +
+                "exactly as you type it."];
+      },
+      input: { placeholder: "her husband is away for a month", send: "That's it" } },
+
     { id: "length",
+      when: isTrain,
       say: function (a) {
         var opener = {
           "new-baby": "Mazal tov! That's the best news I've had all week.",
@@ -1632,17 +2035,34 @@
           "recovery": "Refuah shleimah. Poor thing.",
           "moving-in": "How nice. Boxes everywhere, I imagine.",
           "new-to-community": "Then let's make sure they feel it.",
+          "miluim": "Then we look after the ones at home. That's the harder half of it, " +
+                    "and it goes on longer than anybody expects.",
+          "other": "Thank you for telling me.",
           "just-because": "You don't need a reason. Good for you for noticing."
         }[a.occasion];
         return [opener, "How long shall I run it for?"];
       },
+      /* A week was the assumption and it was wrong. A month is ordinary for a
+         new baby or a miluim family, and some run longer than that — so there
+         is a way out of the list entirely. */
       chips: [
+        { label: "Just a few days", value: "4" },
         { label: "A week", value: "7" },
         { label: "Two weeks", value: "14" },
-        { label: "Just a few days", value: "4" }
+        { label: "A month", value: "30" },
+        { label: "Longer than that", value: "other" }
       ] },
 
+    { id: "lengthOther",
+      when: function (a) { return a.length === "other"; },
+      say: function () {
+        return ["How long? Say it however you like — six weeks, three months, " +
+                "until the end of the summer."];
+      },
+      input: { placeholder: "six weeks", send: "That's it" } },
+
     { id: "cadence",
+      when: isTrain,
       say: function () {
         return ["Every day, or every other day? Plenty of people find every other " +
                 "is enough — there are usually leftovers."];
@@ -1650,11 +2070,21 @@
       chips: [
         { label: "Every other day", value: "alternate" },
         { label: "Every day", value: "daily" },
+        /* Asked for by a planner: a family in the thick of it often needs lunch
+           as well, and splitting a day in two is a different ask from adding
+           another day. Two slots a day, each labelled, each taken separately. */
+        { label: "Lunch and dinner every day", value: "twice" },
         { label: "I'll pick the days myself", value: "manual" }
       ] },
 
+    /* Three bands rather than one number, on both kinds. Teenagers eat like
+       adults and a half, and a table of eight where six are under five is not a
+       table of eight. Same question, different reason for asking. */
     { id: "adults",
-      say: function () { return ["How many adults are we cooking for?"]; },
+      say: function (a) {
+        return [isPot(a) ? "Roughly how many adults are coming?"
+                         : "How many adults are we cooking for?"];
+      },
       chips: [
         { label: "1", value: "1" }, { label: "2", value: "2" },
         { label: "3", value: "3" }, { label: "4", value: "4" },
@@ -1662,7 +2092,10 @@
       ] },
 
     { id: "teens",
-      say: function () { return ["Any teenagers? They eat like adults and a half."]; },
+      say: function (a) {
+        return [isPot(a) ? "Any teenagers? Count them as adults and a half."
+                         : "Any teenagers? They eat like adults and a half."];
+      },
       chips: [
         { label: "None", value: "0" }, { label: "1", value: "1" },
         { label: "2", value: "2" }, { label: "3", value: "3" }, { label: "More", value: "4" }
@@ -1676,10 +2109,39 @@
         { label: "4", value: "4" }, { label: "More", value: "5" }
       ] },
 
-    { id: "headNote",
+    { id: "crowd",
+      when: isPot,
       say: function () {
-        return ["Anything else about who's eating? A new baby, someone staying, " +
-                "a fussy one — whatever you'd mention on the phone."];
+        return ["Are the children coming, or is this a grown-up evening? " +
+                "I'll put it on the board either way, so nobody has to ask you."];
+      },
+      chips: [
+        { label: "Children welcome", value: "kids" },
+        { label: "Adults only", value: "adults" }
+      ] },
+
+    /* Both readings of the same question, asked once. Some people won't walk into
+       a house with a dog in it; some would like to bring theirs. Asking twice is
+       exactly the extra layer people complain about. */
+    { id: "pets",
+      when: isPot,
+      say: function () {
+        return ["Anything about animals? Some people won't come in if there's a dog, " +
+                "and some would rather bring theirs than leave them."];
+      },
+      chips: [
+        { label: "No pets here", value: "none" },
+        { label: "There's a dog in the house", value: "resident" },
+        { label: "Bring yours if you like", value: "welcome" }
+      ] },
+
+    { id: "headNote",
+      say: function (a) {
+        return [isPot(a)
+          ? "Anything else about the crowd? Somebody in a wheelchair, a baby who'll " +
+              "need somewhere to sleep — whatever you'd mention on the phone."
+          : "Anything else about who's eating? A new baby, someone staying, " +
+              "a fussy one — whatever you'd mention on the phone."];
       },
       input: { placeholder: "a new baby, and my mother is staying", send: "That's it" },
       skip: { label: "Nothing else", value: "" } },
@@ -1704,16 +2166,44 @@
       input: { placeholder: "dairy, strawberries", send: "That's it" },
       skip: { label: "Nothing else", value: "" } },
 
-    { id: "address",
+    { id: "spread",
+      when: isPot,
       say: function () {
-        return ["Do you have their address? If not, later is absolutely fine — " +
-                "I won't hold anything up over it."];
+        return ["Last thing. What do you want people bringing? I'll put the slots up " +
+                "and they can take one each, so you don't end up with nine trays of kugel."];
+      },
+      chips: [
+        { label: "The whole spread", value: "full" },
+        { label: "I'm doing the mains — just the rest", value: "extras" },
+        { label: "Only dessert and drinks", value: "sweet" },
+        { label: "I'll write the list myself", value: "manual" }
+      ] },
+
+    { id: "address",
+      say: function (a) {
+        return [isPot(a)
+          ? "What's the address? People will need it, and I'd rather they didn't all text you."
+          : "Do you have their address? If not, later is absolutely fine — " +
+              "I won't hold anything up over it."];
       },
       input: { placeholder: "418 Marion Street", send: "That's it" },
       skip: { label: "I'll add it later", value: "" } },
 
     { id: "done",
       say: function (a) {
+        if (isPot(a)) {
+          return [
+            "That's everything I need.",
+            "Here's your board. Every slot is a thing somebody can bring — add one, " +
+              "take one off, change what it says. There's a button on it to send the whole " +
+              "thing to your group.",
+            a.spread === "manual"
+              ? "I've put four open slots up and left them blank. Write in whatever you want."
+              : "I've put the slots up. Move them about if I've guessed wrong.",
+            a.address ? "I've got the address, so nobody will have to ask you for it."
+                      : "No address yet — add it before you send this round, or they'll all text you."
+          ];
+        }
         return [
           "That's everything I need.",
           "Here's your board. Set the days you'd like covered, and there's a button on it to " +
@@ -1732,6 +2222,17 @@
 
   function setupStep() { return SETUP[state.setup.i] || SETUP[SETUP.length - 1]; }
 
+  /* The next step that applies to what she's been told so far. Steps belonging
+     to the other kind are stepped over rather than removed, so the array stays
+     readable top to bottom as one conversation. */
+  function nextStepIndex(from) {
+    var a = state.setup.answers;
+    for (var i = from; i < SETUP.length; i++) {
+      if (!SETUP[i].when || SETUP[i].when(a)) return i;
+    }
+    return SETUP.length - 1;
+  }
+
   /* "My mum" is a relationship, not a name. It's what somebody types when they
      are thinking about the person rather than about the board — and the board
      is going to be read by twenty neighbours who need to know whose door to go
@@ -1749,6 +2250,44 @@
     /* "my mum" yes; "my mum Debbie Green" no — they've told us the name. */
     if (t.split(/\s+/).length > 4) return false;
     return RELATIONSHIP.test(t);
+  }
+
+  /* ---------------------------------------------------------------------------
+     The cover
+     ---------------------------------------------------------------------------
+     A tester opened the link cold and said, in full: "I dont understand it."
+     She was right to. The demo began mid-conversation with "Hello. What can I
+     do for you?", which makes sense only if you already know what this is.
+
+     A real person never arrives here cold — they get the link from somebody
+     they know, with a sentence of context attached ("meals for the Cohens, pick
+     a night"). The confusion belongs to the prototype being passed around on
+     its own, so the fix belongs here too: say what it is in one line, then
+     offer the two ways in rather than hiding them behind a demo panel.
+
+     This screen is scaffolding. It would not exist in the product.
+     --------------------------------------------------------------------------- */
+  function renderCover() {
+    return '<div class="cover">' +
+      '<div class="cover-mark">golde.</div>' +
+      '<p class="cover-line">When someone has a baby, or a loss, or just a week that has ' +
+        "flattened them, the neighbours cook. When everybody's eating together, they " +
+        "all bring something. She keeps the list straight either way.</p>" +
+      '<div class="cover-ways">' +
+        '<button class="btn block" data-act="cover-plan">' +
+          "I'm organising something</button>" +
+        '<p class="cover-sub">Meals for a family, or one meal everybody brings to. She asks ' +
+          "you a few things on WhatsApp and hands you a link to share with your group.</p>" +
+        /* Same action as the link out of the setup conversation: both mean
+           "take me to the board as a neighbour", so there is one way in, not two. */
+        '<button class="btn block ghost" data-act="skip-setup">' +
+          "Somebody sent me a link</button>" +
+        '<p class="cover-sub">What a neighbour sees: the week, what everyone is bringing, ' +
+          "and one tap to take a night.</p>" +
+      "</div>" +
+      '<p class="cover-foot">A prototype. Nothing is sent to anybody and nothing is saved — ' +
+        "close the tab and it forgets you.</p>" +
+      "</div>";
   }
 
   function renderSetup() {
@@ -1824,7 +2363,7 @@
     st.reasked = false;
 
     if (key) st.answers[key] = value;
-    st.i += 1;
+    st.i = nextStepIndex(st.i + 1);
     var step = setupStep();
     /* Build the train before she shows it, or the card she hands over describes
        somebody else's week. */
@@ -1841,11 +2380,14 @@
   function applySetup() {
     var a = state.setup.answers;
     var t = state.data.train;
+    if (a.kind === "potluck") return applyPotluck(a, t);
+    t.kind = "train";
     if (a.family) {
       t.recipientFamily = a.family;
       t.title = "Meals for " + a.family;
     }
     if (a.occasion) t.occasion = a.occasion;
+    if (a.occasionOther) t.occasionText = a.occasionOther.trim();
     if (a.adults) t.adults = parseInt(a.adults, 10);
     if (a.teens !== undefined && a.teens !== "") t.teens = parseInt(a.teens, 10);
     if (a.littles !== undefined && a.littles !== "") t.littles = parseInt(a.littles, 10);
@@ -1853,16 +2395,22 @@
     t.otherAllergies = a.otherAllergies || "";
     if (a.address) t.address = a.address;
     t.allergies = a.allergies ? [a.allergies] : [];
-    if (a.length) {
+    var runFor = lengthDays(a);
+    if (runFor) {
       var start = d(t.start);
       var end = new Date(start);
-      end.setDate(end.getDate() + parseInt(a.length, 10) - 1);
+      end.setDate(end.getDate() + runFor - 1);
       t.end = end.getFullYear() + "-" + pad(end.getMonth() + 1) + "-" + pad(end.getDate());
       regenDays();
     }
     /* A brand-new train has nobody on it — that is the honest starting state. */
     state.data.days.forEach(function (day, i) {
-      day.slots = [{ id: "n" + (++state.slotSeq), filled: false }];
+      /* Two meals a day is a different ask from two more days: the family needs
+         lunch as well, and each sitting wants its own person. */
+      day.slots = a.cadence === "twice"
+        ? [{ id: "n" + (++state.slotSeq), filled: false, meal: "lunch" },
+           { id: "n" + (++state.slotSeq), filled: false, meal: "dinner" }]
+        : [{ id: "n" + (++state.slotSeq), filled: false }];
       /* Every other day is what most people actually run: there are leftovers,
          and asking twenty neighbours for seven nights is a harder ask than four. */
       if (a.cadence === "alternate") {
@@ -1880,6 +2428,84 @@
     }];
     state.role = "organizer";
     state.filter = "open";
+  }
+
+  /* "Six weeks", "3 months", "until the end of the summer". People do not answer
+     "how long?" in integers, and a planner who has just been told a family needs
+     a month should not have to translate that into days. Anything she genuinely
+     cannot read falls back to a fortnight — long enough to be useful, short
+     enough that extending it on the board is no hardship. */
+  var NUMBER_WORDS = { one:1, two:2, three:3, four:4, five:5, six:6, seven:7, eight:8,
+                       nine:9, ten:10, eleven:11, twelve:12, a:1, an:1, couple:2, few:3 };
+
+  function lengthDays(a) {
+    if (a.length && a.length !== "other") return parseInt(a.length, 10) || 0;
+    if (!a.length) return 0;
+    var txt = String(a.lengthOther || "").toLowerCase();
+    if (!txt) return 14;
+    var m = /(\d+|[a-z]+)\s*(day|week|month|year)/.exec(txt);
+    if (!m) {
+      var bare = /(\d+)/.exec(txt);
+      return bare ? parseInt(bare[1], 10) : 14;
+    }
+    var n = /^\d+$/.test(m[1]) ? parseInt(m[1], 10) : (NUMBER_WORDS[m[1]] || 1);
+    return Math.min(n * ({ day: 1, week: 7, month: 30, year: 365 }[m[2]]), 365);
+  }
+
+  /* One sitting, one date, a slot per dish. The train's week of day cards is
+     replaced outright rather than folded down to one, because a potluck board
+     that still has Tuesday on it is a lie about what you're organising. */
+  function applyPotluck(a, t) {
+    var when = whenOption(a.when);
+    t.kind = "potluck";
+    t.hostName = a.host || "us";
+    t.recipientFamily = t.hostName;
+    t.gathering = a.gathering || "just-because";
+    t.occasion = "just-because";           // keeps her register bright, never a shiva's
+    t.title = titleFor(t.gathering, t.hostName);
+    t.whenLabel = when.label;
+    t.whenTime = when.time;
+    t.crowd = a.crowd || "kids";
+    t.pets = a.pets || "none";
+    t.start = t.end = when.value;
+    t.paused = false;
+    t.wrapped = false;
+    if (a.adults) t.adults = parseInt(a.adults, 10);
+    if (a.teens !== undefined && a.teens !== "") t.teens = parseInt(a.teens, 10);
+    if (a.littles !== undefined && a.littles !== "") t.littles = parseInt(a.littles, 10);
+    t.headNote = a.headNote || "";
+    t.otherAllergies = a.otherAllergies || "";
+    t.allergies = a.allergies ? [a.allergies] : [];
+    if (a.address) t.address = a.address;
+
+    var courses = SPREADS[a.spread] || SPREADS.full;
+    state.data.days = [{
+      id: "pot", iso: when.value, needed: true, kosher: "any",
+      from: when.time, to: when.time,
+      slots: courses.map(function (c) {
+        return { id: "n" + (++state.slotSeq), filled: false, course: c };
+      })
+    }];
+
+    state.data.messages = [{
+      id: "s1", from: "golde", dir: "in", time: "10:02", card: "board",
+      text: ["Here's the board for " + t.title + ". Nothing on it yet — " +
+             "send it round and let people pick."]
+    }];
+    state.role = "organizer";
+    state.filter = "open";
+  }
+
+  /* "at the Bergers's" is what you get from bolting an apostrophe onto whatever
+     was typed. "The Bergers" is already the household; "Malky" needs the 's. */
+  function titleFor(gathering, host) {
+    var h = String(host || "us").trim();
+    var at = " at " + h + (/^(my|our|the)\b/i.test(h) ? "" : /s$/i.test(h) ? "'" : "'s");
+    return ({ "shabbat": "Shabbat meal",
+              "yomtov":  "Yom tov meal",
+              "simcha":  "A simcha",
+              "welcome": "A welcome",
+              "just-because": "A shared meal" }[gathering] || "A shared meal") + at;
   }
 
   function finishSetup() { goto("board"); }
@@ -1950,15 +2576,41 @@
     var t = state.data.train;
     var day = findDay(s.dayId);
     var mode = state.form.mode || "cook";
+    /* On a potluck the slot is a course, not a night, so everything that names
+       the thing you're taking names the course instead. */
+    var pot = isPotluck() ? findSlot(s.dayId, s.slotId) : null;
+    var potCourse = pot ? (COURSES[pot.course] || COURSES.anything) : null;
 
-    var sub = day
+    var sub = potCourse
+      ? esc(dayName(day.iso) + ", " + dateLabel(day.iso) + " · " + t.whenTime)
+      : day
       ? esc(dateLabel(day.iso) + " · " + windowText(day) +
         (day.candle ? " (candles at " + day.candle + ")" : ""))
       : "";
 
     var body = "";
 
-    if (day) {
+    if (potCourse) {
+      body += '<div class="golde-note"><span class="gn-mark">golde.</span><span>' +
+        esc(potCourse.hint
+          ? potCourse.label + " — " + potCourse.hint + ". " + atTheTable(t) + "."
+          : potCourse.label + ". " + atTheTable(t) + ".") + "</span></div>";
+      if (t.crowd === "kids" && (Number(t.littles) || 0) > 0) {
+        body += '<div class="golde-note tight"><span class="gn-mark">golde.</span><span>' +
+          esc("There'll be little ones there, so something plain wouldn't go amiss.") +
+          "</span></div>";
+      }
+    }
+
+    if (!pot && day && day.kosher !== "any" && isJewish()) {
+      var want = { meat: "meat", dairy: "dairy", pareve: "pareve" }[day.kosher];
+      body += '<div class="golde-note"><span class="gn-mark">golde.</span><span>' +
+        esc("They're hoping for something " + want + " that night. It's a wish, not a rule — " +
+            "I'll say so if what you type sounds like the other thing, and then it's your call.") +
+        "</span></div>";
+    }
+
+    if (day && !pot) {
       body += '<div class="golde-note"><span class="gn-mark">golde.</span><span>' +
         esc("Cooking for " + headcount(t) + " — " + t.householdNote + ". " +
             (day.candle
@@ -1967,11 +2619,17 @@
         "</span></div>";
     }
 
-    body += '<div class="f"><span class="f-legend">What are you thinking?</span>' +
-      '<div class="chips">' +
-        modeChip("cook", "I'm cooking", mode) +
-        modeChip("nocook", "I don't cook", mode) +
-      "</div></div>";
+    /* Groceries, a gift card, ordering in — all sensible ways to feed a family
+       who can't cook this week, and all nonsense at a table you're sitting at.
+       A potluck gets no such choice; you bring something or you don't come. */
+    if (pot) { mode = "cook"; }
+    else {
+      body += '<div class="f"><span class="f-legend">What are you thinking?</span>' +
+        '<div class="chips">' +
+          modeChip("cook", "I'm cooking", mode) +
+          modeChip("nocook", "I don't cook", mode) +
+        "</div></div>";
+    }
 
     if (mode === "cook") {
       var goTo = (state.data.cook.goTo || []);
@@ -2008,16 +2666,15 @@
       }
     } else {
       var kind = state.form.kind || "groceries";
+      var kd = kindDef(kind);
       body += '<div class="f"><span class="f-legend">How would you like to help?</span>' +
         '<div class="hint">Just as good as a casserole. Better, some weeks.</div>' +
         '<div class="chips">' +
-          kindChip("groceries", "🧺 Groceries", kind) +
-          kindChip("giftcard", "💌 A gift card", kind) +
-          kindChip("orderin", "🛵 Order in for them", kind) +
+          KINDS.map(function (k) { return kindChip(k.key, k.chip, kind); }).join("") +
         "</div></div>";
-      body += '<div class="f"><label for="claim-note">Anything you want them to know?</label>' +
+      body += '<div class="f"><label for="claim-note">' + esc(kd.ask) + "</label>" +
         '<div class="hint">Optional.</div>' +
-        '<textarea id="claim-note" placeholder="Milk, eggs, coffee, and something for the little ones">' +
+        '<textarea id="claim-note" placeholder="' + esc(kd.eg) + '">' +
           esc(state.form.note || "") + "</textarea></div>";
     }
 
@@ -2040,7 +2697,11 @@
     var def = channelDef(ch);
     if (def.needs) {
       body += '<div class="f"><label for="claim-contact">' + esc(def.fieldLabel) + "</label>" +
-        '<div class="hint">Just me — it never shows up on the board. And nothing here is saved; ' +
+        '<div class="hint">' +
+        (def.needs === "phone"
+          ? "With the country code, please — I don't guess where anybody is. "
+          : "") +
+        'Just me — it never shows up on the board. And nothing here is saved; ' +
         'this is a demo.</div>' +
         '<input type="' + (def.needs === "email" ? "email" : "tel") + '" id="claim-contact" ' +
         'placeholder="' + esc(def.placeholder) + '" value="' + esc(state.form.contact || "") + '"></div>';
@@ -2053,11 +2714,16 @@
         esc("Not a word from me, then. You know your own head best.") + "</span></div>";
     }
 
-    var label = day ? "Sign me up for " + esc(dayName(day.iso)) : "Sign me up";
+    var label = potCourse ? "Put me down for this"
+              : day ? "Sign me up for " + esc(dayName(day.iso))
+              : "Sign me up";
     var foot = '<button class="btn block" data-act="submit-claim">' + label + "</button>" +
       '<button class="btn block quiet" data-act="close-sheet">Not right now</button>';
 
-    return sheetShell(day ? esc(dayName(day.iso)) + " is yours if you want it" : "Helping out", sub, body, foot);
+    var head = potCourse ? esc(potCourse.label) + " — yours if you want it"
+             : day ? esc(dayName(day.iso)) + " is yours if you want it"
+             : "Helping out";
+    return sheetShell(head, sub, body, foot);
   };
 
   /* --- how she reaches you --------------------------------------------------
@@ -2065,10 +2731,13 @@
      reminder legitimate — and it's why she asks here and nowhere else. */
 
   var CHANNELS = [
+    /* No country is assumed and none is detected. A link forwarded from Golders
+       Green to Ramat Beit Shemesh should not silently gain a +1, so she asks for
+       the country code and stores exactly what was typed. */
     { key: "whatsapp", label: "WhatsApp", short: "on WhatsApp", needs: "phone",
-      fieldLabel: "Your WhatsApp number", placeholder: "(555) 014-0000" },
+      fieldLabel: "Your WhatsApp number", placeholder: "+972 50 000 0000" },
     { key: "sms", label: "Text me", short: "by text", needs: "phone",
-      fieldLabel: "Your mobile number", placeholder: "(555) 014-0000" },
+      fieldLabel: "Your mobile number", placeholder: "+972 50 000 0000" },
     { key: "email", label: "Email", short: "by email", needs: "email",
       fieldLabel: "Your email", placeholder: "you@example.com" },
     { key: "calendar", label: "My calendar", short: "in your calendar", needs: null },
@@ -2144,8 +2813,11 @@
   /* --- pick a day (for the "I don't cook" entry point with no day chosen) --- */
 
   SHEETS.pickday = function (s) {
-    var body = '<p class="golde-say">Which night works for you? Anything with nobody on it is fair game, ' +
-      'and if none of them fit, that\'s alright too — there\'ll be another family next month.</p>';
+    /* This sheet is read at a shiva as often as at a birth. "There'll be another
+       family next month" was written for the cheerful case and is unbearable in
+       the other one, so it is gone. */
+    var body = '<p class="golde-say">Which night works for you? Anything with nobody on it is ' +
+      'fair game, and if none of them fit, leave it — somebody else will take it.</p>';
     var open = openDays();
     if (!open.length) {
       body += '<p class="golde-say">Would you look at that — every night is taken. What a group.</p>';
@@ -2221,15 +2893,18 @@
   SHEETS.editday = function (s) {
     var day = findDay(s.dayId);
     if (!day) return "";
-    var body = '<div class="f"><span class="f-legend">What are they hoping for?</span>' +
-      '<div class="hint">A wish, not a rule. I\'ll mention it softly if somebody types the other thing.</div>' +
-      '<div class="chips">' +
-        ["meat", "dairy", "pareve", "any"].map(function (k) {
-          var lab = { meat: "Meat", dairy: "Dairy", pareve: "Pareve", any: "No preference" }[k];
-          return '<button class="chip" data-act="set-kosher" data-day="' + day.id + '" data-k="' + k +
-            '" aria-pressed="' + (day.kosher === k) + '">' + lab + "</button>";
-        }).join("") +
-      "</div></div>" +
+    var body = (isJewish()
+      ? '<div class="f"><span class="f-legend">What are they hoping for?</span>' +
+        '<div class="hint">A wish, not a rule. I\'ll mention it softly if somebody types the ' +
+        'other thing — and "No preference" takes it off the card altogether.</div>' +
+        '<div class="chips">' +
+          ["meat", "dairy", "pareve", "any"].map(function (k) {
+            var lab = { meat: "Meat", dairy: "Dairy", pareve: "Pareve", any: "No preference" }[k];
+            return '<button class="chip" data-act="set-kosher" data-day="' + day.id + '" data-k="' + k +
+              '" aria-pressed="' + (day.kosher === k) + '">' + lab + "</button>";
+          }).join("") +
+        "</div></div>"
+      : "") +
       '<div class="f-row">' +
         '<div class="f"><label for="ed-from">Window opens</label>' +
           '<input type="text" id="ed-from" data-dayfield="from" data-day="' + day.id + '" value="' + esc(day.from) + '"></div>' +
@@ -2406,7 +3081,7 @@
     "new-baby": { family: "the Cohens", contact: "Sarah & Dovid Cohen", household: 5,
       householdNote: "two little ones, and a brand new baby girl",
       opening: [
-        "Mazal tov — Sarah and Dovid Cohen had a baby girl on Motzei Shabbos. 💕 Mother and baby " +
+        "Mazal tov — Sarah and Dovid Cohen had a baby girl on Motzei Shabbat. 💕 Mother and baby " +
           "are home and everybody is tired in the very best way.",
         "Nobody in that house should be thinking about dinner this week. A pot of something warm " +
           "is plenty."
@@ -2454,10 +3129,14 @@
       'it exists so one person can walk through all three sides of a meal train without three phones. ' +
       'Nothing here is saved anywhere.</div>';
 
+    /* A potluck has two sides, not three — whoever is hosting is the one
+       organising, and there is nobody sitting at home being fed. */
+    var roleKeys = isPotluck() ? ["organizer", "neighbor"] : Object.keys(ROLES);
     body += '<div class="f"><span class="f-legend">Viewing as</span><div class="role-grid">' +
-      Object.keys(ROLES).map(function (k) {
+      roleKeys.map(function (k) {
         return '<button class="role-card" data-act="set-role" data-role="' + k + '" aria-pressed="' +
-          (state.role === k) + '"><b>' + esc(ROLES[k].label) + "</b><span>" + esc(ROLES[k].blurb) +
+          (state.role === k) + '"><b>' + esc(isPotluck() ? POT_ROLES[k].label : ROLES[k].label) +
+          "</b><span>" + esc(isPotluck() ? POT_ROLES[k].blurb : ROLES[k].blurb) +
           "</span></button>";
       }).join("") + "</div></div>";
 
@@ -2582,10 +3261,14 @@
     } else {
       kind = f.kind || "groceries";
       var base = {
-        groceries: "A grocery drop",
-        giftcard: "A gift card, so they can order whatever the day calls for",
-        orderin: "Dinner ordered in and sent to the door"
-      }[kind];
+        groceries:  "A grocery shop",
+        giftcard:   "A gift card, so they can get whatever the day calls for",
+        orderin:    "Food ordered in and sent to the door",
+        childcare:  "Taking the children for a few hours",
+        lift:       "A lift, wherever they need to be",
+        paper:      "Plates, cups and cutlery, so nobody is washing up",
+        house:      "A hand around the house"
+      }[kind] || "A hand";
       dish = base + ((f.note || "").trim() ? " — " + f.note.trim() : "");
     }
 
@@ -2623,7 +3306,7 @@
     }
 
     var when = day.candle
-      ? "It's the Shabbos one — at the door by " + day.to + ", before candles at " + day.candle + "."
+      ? "It's the Shabbat one — at the door by " + day.to + ", before candles at " + day.candle + "."
       : "Anywhere between " + day.from + " and " + day.to + ".";
 
     if (channel === "none") {
@@ -2759,7 +3442,7 @@
     });
     var friday = open.filter(function (x) { return x.candle; })[0];
     if (friday) {
-      lines.push("Friday's the Shabbos one — it has to be at the door by " + friday.to +
+      lines.push("Friday's the Shabbat one — it has to be at the door by " + friday.to +
         ", before candles at " + friday.candle + ". Worth knowing before you volunteer.");
     }
     lines.push("And if cooking isn't your thing, groceries or a gift card help just as much. Truly.");
@@ -2935,7 +3618,7 @@
     for (var i = 0; i < days.length; i++) {
       var n = dayName(days[i].iso).toLowerCase();
       if (t.indexOf(n) > -1) return days[i];
-      if (n === "shabbos" && (t.indexOf("saturday") > -1 || t.indexOf("shabbat") > -1 ||
+      if (n === "shabbat" && (t.indexOf("saturday") > -1 || t.indexOf("shabbat") > -1 ||
           t.indexOf("shabbes") > -1)) return days[i];
     }
     return null;
@@ -2974,7 +3657,7 @@
       lines.push(dayName(day.iso) + " is covered.");
     }
     lines.push(day.candle
-      ? "It's the Shabbos one — at the door by " + day.to + ", before candles at " + day.candle + "."
+      ? "It's the Shabbat one — at the door by " + day.to + ", before candles at " + day.candle + "."
       : "Window's " + day.from + " to " + day.to + ".");
     return lines.join(" ");
   }
@@ -3149,9 +3832,10 @@
       var step = setupStep();
       var c = step.chips[parseInt(el.getAttribute("data-i"), 10)];
       if (!c) return;
-      var key = ["occasion", "length", "cadence", "adults", "teens", "littles", "allergies"]
-        .indexOf(step.id) > -1 ? step.id : null;
-      setupAdvance(c.label, key, c.value);
+      /* Every chip step stores its answer under its own id. It used to be a
+         hand-kept whitelist, which quietly dropped every new question added
+         after it. `store` is for the one step whose id and answer differ. */
+      setupAdvance(c.label, step.store || step.id, c.value);
     },
 
     "setup-skip": function () {
@@ -3159,6 +3843,8 @@
     },
 
     "finish-setup": function () { finishSetup(); },
+    "cover-plan": function () { goto("setup"); },
+
     "skip-setup": function () {
       /* Straight to the board, which is where a real link lands you. Routing the
          demo through the feed first added a hop nobody has in the product and
@@ -3179,12 +3865,15 @@
 
     "set-role": function (el) {
       state.role = el.getAttribute("data-role");
+      /* A potluck has no recipient. If the demo panel is stale, don't strand
+         somebody on a view that cannot render. */
+      if (isPotluck() && state.role === "family") state.role = "organizer";
       state.sheet = null;
       render();
       /* The board is a different page for each role — start them at the top of it. */
       var bs = $("#board-scroll");
       if (bs) bs.scrollTop = 0;
-      toast("Now viewing as " + ROLES[state.role].label + ". Same train, different pair of eyes.");
+      toast("Now viewing as " + roleLabel() + ". Same board, different pair of eyes.");
     },
 
     "claim": function (el) {
@@ -3230,6 +3919,39 @@
     "confirm-cancel": function (el) { confirmCancel(el.getAttribute("data-slot")); },
     "mark-delivered": function (el) {
       markDelivered(el.getAttribute("data-slot") || el.getAttribute("data-arg"));
+    },
+
+    /* Potluck-only. The host can change their mind about who's coming without
+       going back through the conversation. */
+    "toggle-jewish": function () {
+      var t = state.data.train;
+      t.jewish = t.jewish === false;
+      render();
+      toast(t.jewish
+        ? "Jewish calendar back on. Saturday is Shabbat again."
+        : "Plain calendar. Saturday is Saturday, and I'll stop asking about meat and dairy.");
+    },
+
+    "toggle-crowd": function () {
+      var t = state.data.train;
+      t.crowd = t.crowd === "adults" ? "kids" : "adults";
+      render();
+      toast(t.crowd === "adults" ? "Adults only. I've put it on the board."
+                                 : "Children welcome. I've put it on the board.");
+    },
+    "cycle-pets": function () {
+      var order = ["none", "resident", "welcome"];
+      var t = state.data.train;
+      t.pets = order[(order.indexOf(t.pets) + 1) % order.length];
+      render();
+      toast(PETS_TEXT[t.pets] + ".");
+    },
+    "add-course": function () {
+      var day = state.data.days[0];
+      if (!day) return;
+      day.slots.push({ id: "n" + (++state.slotSeq), filled: false, course: "anything" });
+      render();
+      toast("One more slot. Change what it says with Edit if you like.");
     },
 
     "add-slot": function (el) { addSlot(el.getAttribute("data-day")); },
@@ -3296,7 +4018,7 @@
         "What happened instead?\n\n\n" +
         "Anything Golde said that felt wrong?\n\n\n" +
         "---\n" + t.title + " · " + shortDate(t.start) + "-" + shortDate(t.end) +
-        " · viewing as " + ROLES[state.role].label;
+        " · viewing as " + roleLabel();
       window.location.href = "mailto:hello@golde.meals" +
         "?subject=" + encodeURIComponent("golde. - " + t.title) +
         "&body=" + encodeURIComponent(body);
@@ -3524,7 +4246,7 @@
       }
       state.data = seed();
       state.role = "neighbor";
-      state.surface = "setup";
+      state.surface = "cover";
       state.setup = { i: 0, answers: {},
         log: [{ me: false, text: ["Hello. What can I do for you?"] }] };
       state.sheet = null;
@@ -3660,17 +4382,22 @@
   }
 
   function render() {
-    var setupEl = $("#surface-setup"), chatEl = $("#surface-chat"), boardEl = $("#surface-board");
+    var coverEl = $("#surface-cover"), setupEl = $("#surface-setup");
+    var chatEl = $("#surface-chat"), boardEl = $("#surface-board");
 
     var chatScroll = keepScroll("#chat-scroll");
     var boardScroll = keepScroll("#board-scroll");
 
+    coverEl.innerHTML = state.surface === "cover" ? renderCover() : "";
     setupEl.innerHTML = state.surface === "setup" ? renderSetup() : "";
     chatEl.innerHTML = renderChat();
     boardEl.innerHTML = renderBoard();
 
     $("#phone").setAttribute("data-surface", state.surface);
-    setupEl.setAttribute("data-pos", state.surface === "setup" ? "on" : "off-left");
+    coverEl.setAttribute("data-pos", state.surface === "cover" ? "on" : "off-left");
+    coverEl.setAttribute("aria-hidden", state.surface !== "cover");
+    setupEl.setAttribute("data-pos",
+      state.surface === "setup" ? "on" : state.surface === "cover" ? "off-right" : "off-left");
     chatEl.setAttribute("data-pos",
       state.surface === "chat" ? "on" : state.surface === "board" ? "off-left" : "off-right");
     boardEl.setAttribute("data-pos", state.surface === "board" ? "on" : "off-right");

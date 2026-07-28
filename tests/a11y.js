@@ -18,7 +18,6 @@ const MIN_TEXT = 15;
   p.on('pageerror', e => errs.push(e.message));
 
   await p.goto('http://localhost:8099/', { waitUntil: 'networkidle' });
-  await p.click('[data-act="skip-setup"]'); await p.waitForTimeout(500);
 
   const audit = async (where) => p.evaluate(({ MIN_TARGET, MIN_TEXT, where }) => {
     /* The demo control is scaffolding a tester sees once and no real user ever
@@ -61,6 +60,12 @@ const MIN_TEXT = 15;
   };
 
   let total = 0;
+  /* The first screen anybody sees, and the one a confused tester was looking at
+     when she said "I dont understand it". If anything wants to be legible, it is
+     this. */
+  total += report(await audit('COVER'));
+
+  await p.click('[data-act="skip-setup"]'); await p.waitForTimeout(500);
   total += report(await audit('BOARD'));
 
   await (await p.$$('#surface-board button:has-text("I\'ll take")'))[0].click();

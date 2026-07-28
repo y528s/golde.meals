@@ -33,7 +33,7 @@ const { chromium } = require('playwright-core');
   await (await p.$$('button:has-text("I\'ll take Friday")'))[0].click(); await p.waitForTimeout(450);
   const fri = await p.$$eval('[data-act="use-goto"]', els =>
     els.map(e => (e.className.includes('faded')?'faded ':'clean ') + e.textContent.trim()));
-  console.log('\nFRIDAY (meat, Shabbos):'); fri.forEach(f=>console.log('  · '+f));
+  console.log('\nFRIDAY (meat, Shabbat):'); fri.forEach(f=>console.log('  · '+f));
   console.log('\nerrors:', errs.length); errs.forEach(e=>console.log(e));
   await b.close();
 })().catch(e=>{console.error('FATAL',e.message);process.exit(1);});

@@ -1,6 +1,13 @@
 /* Walk the setup conversation by step name, so reordering the questions does
    not break every test that happens to pass through them. */
 module.exports.walk = async function walk(p, answers, log) {
+  /* The cover screen sits in front of the conversation now. Getting past it is
+     the helper's job, not every caller's — the last three times a screen moved,
+     it broke every suite that had memorised the click order. */
+  if (await p.isVisible('[data-act="cover-plan"]').catch(() => false)) {
+    await p.click('[data-act="cover-plan"]');
+    await p.waitForTimeout(350);
+  }
   for (let guard = 0; guard < 40; guard++) {
     await p.waitForSelector('.wa-actions[data-step]', { timeout: 10000 });
     const step = await p.getAttribute('.wa-actions', 'data-step');

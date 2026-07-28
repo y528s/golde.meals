@@ -14,7 +14,7 @@
    Hebcal's data is the authority here rather than anything computed locally.
    The calendar is intricate enough — leap years, the dechiyot, doubled
    parshiyot that split differently in Israel — that a hand-rolled version would
-   look authoritative while being quietly wrong, and "Parshas Vayishlach" when
+   look authoritative while being quietly wrong, and "Parashat Vayishlach" when
    it is Vayeitzei reads as an outsider guessing rather than as a bug.
 
    Hebcal is free, has no key, and asks that you cache rather than hammer it.
@@ -53,7 +53,7 @@ const url = "https://www.hebcal.com/hebcal?v=1&cfg=json&maj=on&min=on&mod=off&nx
     if (!iso) continue;
 
     if (item.category === "parashat") {
-      /* Hebcal dates the parsha on the Shabbos; the meal train cares about the
+      /* Hebcal dates the parsha on the Shabbat; the meal train cares about the
          Friday that leads into it, since that is when somebody cooks. */
       const fri = new Date(iso + "T12:00:00Z");
       fri.setUTCDate(fri.getUTCDate() - 1);

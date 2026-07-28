@@ -75,14 +75,14 @@ between:
   something to catch, and typing pasta on Tuesday (next to Monday's ziti) fires
   it live.
 - **Delivery coordination.** Two drop-offs on one day get staggered and flagged.
-- **Friday rule.** The Shabbos meal has an earlier window with candle-lighting
+- **Friday rule.** The Shabbat meal has an earlier window with candle-lighting
   shown, and Golde says so on the card, in the claim sheet and in the reminder.
 - **The "I don't cook" lane.** Groceries, a gift card, or ordering in — all
   first-class, none treated as lesser.
 
 ### Seed data
 
-One train: *Meals for the Cohens*, new baby, Sunday Aug 2 – Shabbos Aug 8.
+One train: *Meals for the Cohens*, new baby, Sunday Aug 2 – Shabbat Aug 8.
 Household of five, two little ones, keeps kosher (meat and dairy separate), a
 real nut allergy, dislikes mushrooms, loves chicken soup, anything with lemon,
 and a challah that isn't from the store. About half the week is pre-filled,

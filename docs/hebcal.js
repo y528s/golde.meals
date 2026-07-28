@@ -3,7 +3,7 @@
    -----------------------------------------------------------------------------
    Three things change what a meal train should say:
 
-     the parsha    — "Friday, Parshas Vayeira" is how people in this community
+     the parsha    — "Friday, Parashat Vayeira" is how people in this community
                      actually name a week, and getting it right is the clearest
                      signal that whoever built this knows who it is for
      yom tov       — nobody cooks on a chag, and candle-lighting moves
@@ -21,7 +21,7 @@
    quietly wrong.
 
    Being wrong here is worse than being silent. Telling a community that this
-   Shabbos is Parshas Vayishlach when it is Vayeitzei does not read as a minor
+   Shabbat is Parashat Vayishlach when it is Vayeitzei does not read as a minor
    bug; it reads as an outsider guessing.
 
    So: this is a verified table, and anything outside it returns null and the
@@ -53,7 +53,7 @@
     return iso >= VERIFIED_FROM && iso <= VERIFIED_TO;
   }
 
-  /* The parsha read on the Shabbos that a given Friday leads into. Null when
+  /* The parsha read on the Shabbat that a given Friday leads into. Null when
      we have not verified that week — the caller must cope with null. */
   function parshaFor(iso) {
     if (!known(iso)) return null;
@@ -89,7 +89,7 @@
     }
     var p = parshaFor(iso);
     var c = candleLighting(iso);
-    if (p && c) return "Parshas " + p + ". Candles at " + c + ".";
+    if (p && c) return "Parashat " + p + ". Candles at " + c + ".";
     if (c) return "Candles at " + c + ".";
     return null;
   }
