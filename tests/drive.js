@@ -135,7 +135,7 @@ const URL = 'http://localhost:8099/';
   console.log('no horizontal overflow:', hscroll);
   /* skip-setup lands on the board already */
   await mp.screenshot({ path: OUT + '/11-mobile-board.png' });
-  await (await mp.$$('button:has-text("I don\'t cook")'))[0].click();
+  await (await mp.$$('button:has-text("I\'ll help another way")'))[0].click();
   await mp.waitForTimeout(400);
   await mp.click('[data-act="set-kind"][data-kind="giftcard"]'); await mp.waitForTimeout(300);
   await mp.fill('#claim-name', 'Bracha Levi');

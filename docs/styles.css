@@ -669,7 +669,8 @@ input, textarea, select { font: inherit; color: inherit; }
   padding: 11px 10px; font-size: 13.5px; font-weight: 600; color: var(--muted);
 }
 .help-btn:hover { background: var(--card); color: var(--green); border-color: var(--green-soft); }
-.help-btn.wide { width: 100%; margin-top: 14px; }
+.help-btn.wide { width: 100%; margin-top: 0; margin-bottom: 9px; }
+.help-row + .help-btn.wide { margin-top: 9px; }
 .help-btn svg { width: 17px; height: 17px; }
 
 /* "just filled and unfilled and literally nothing else" */
@@ -883,3 +884,11 @@ button.dc-pref:hover { border-color: currentColor; }
   background: var(--amber); border-radius: 2px;
 }
 .nowrap { white-space: nowrap; }
+
+/* Who she is, said before anything else. A tester asked for "a short
+   description on who golde is and what her role is" and this is the answer the
+   person who made her wrote. */
+.cover-who {
+  font-size: 16px; color: var(--muted); line-height: 1.5; margin: 8px 0 0;
+}
+.cover-who b { color: var(--ink); font-weight: 700; }

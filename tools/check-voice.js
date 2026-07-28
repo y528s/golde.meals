@@ -59,6 +59,13 @@ const BANNED = [
    cake", "sugar-free", "they love lemon". So the test is not the word, it is
    the word standing alone between a comma (or the start) and a stop. */
 const VOCATIVE_WORDS = [
+  /* "golde. is your friendly robotic bubby" is how the product describes itself,
+     and it is the sentence a tester asked for. "Thanks, bubby" is software
+     calling a stranger something. Same word, opposite acts — so the rule is the
+     position, not the word. This is the distinction the whole list rests on;
+     bubbie and bubbele are outright banned above only because nobody has ever
+     used them except as an address. */
+  ["bubby", "Describing her is fine. Addressing the reader is not."],
   ["honey", "Fine in a recipe, not as a name for a person."],
   ["hon",   "As above."],
   ["dear",  "\"Dear\" addressing the reader. \"Dear friend\" in a letter is different."],

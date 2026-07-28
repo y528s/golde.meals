@@ -1096,11 +1096,28 @@
     { key: "house", icon: "🧽", label: "A hand in the house",
       chip: "🧽 A hand around the house",
       ask: "What are you offering?",
-      eg: "A load of laundry, or an hour of tidying while the baby sleeps" }
+      eg: "A load of laundry, or an hour of tidying while the baby sleeps" },
+    /* No fixed list survives contact with every community, so the last option is
+       always "something I have thought of and you have not". */
+    { key: "other", icon: "🤝", label: "Something else",
+      chip: "🤝 Something else",
+      ask: "What are you offering?",
+      eg: "I'll do the school run all week" }
   ];
 
   function kindDef(key) {
     return KINDS.filter(function (k) { return k.key === key; })[0] || KINDS[0];
+  }
+
+  /* Ordering in and gift cards assume a delivery app and somewhere to spend the
+     voucher. Plenty of places have neither, and plenty of families need hot food
+     through the door rather than a card. So the planner says which of these make
+     sense where they live, once, and everybody else sees only those. */
+  function offeredKinds() {
+    var allowed = state.data.train.helpKinds;
+    if (!allowed) return KINDS;
+    var on = KINDS.filter(function (k) { return allowed.indexOf(k.key) > -1; });
+    return on.length ? on : KINDS;
   }
 
   var KIND_ICON = { meal: "🍲" };
@@ -1134,8 +1151,11 @@
                 about the night, the other about you. A tester asked for the pair
                 to match, and he was right: both are now about cooking. */
              '" data-slot="' + slot.id + '">I\'ll cook ' + esc(slotWhen(day, slot)) + "</button>" +
+             /* "I don't cook" was read as "I'm out". It has never meant that — it
+                opens the list of other ways to help. Both buttons now start with
+                "I'll", because both are offers. */
              '<button class="btn sm ghost" data-act="claim-nocook" data-day="' + day.id +
-             '" data-slot="' + slot.id + '">I don\'t cook</button></div>';
+             '" data-slot="' + slot.id + '">I\'ll help another way</button></div>';
       } else if (state.role === "planner") {
         h += '<div class="slot-actions">' +
              '<button class="mini-link" data-act="claim" data-day="' + day.id + '" data-slot="' + slot.id +
@@ -1282,8 +1302,15 @@
       "<p><b>" + esc(who) + "</b> is running this one" +
       (isPotluck() ? "" : " for " + esc(t.recipientFamily)) + ". " +
       "Ask her anything about the family or the arrangements.</p>" +
-      '<p><span class="wordmark">golde.</span> is not a person. She keeps the list straight — ' +
-      "who is cooking when — and she will remind you the day before yours.</p>" +
+      /* Note for anyone tempted to run this past the endearment check: "your
+         friendly robotic bubby" describes her, it does not address you. The
+         rule is about software calling a stranger a pet name, which is a
+         different act entirely — and saying what she is turns out to be the
+         thing that was missing. "She is not a person" answered the wrong half
+         of the question. */
+      "<p><b>Golde</b> is your friendly robotic bubby. She keeps everything in the right " +
+      "place so everybody knows what is going on — who is cooking when, what they are " +
+      "bringing, and when yours is due.</p>" +
       '<p class="intro-key"><span class="k-amber"></span> Anything she marks in amber is ' +
       "worth reading before you cook: a deadline, an allergy, or three of the same dish in a row.</p>" +
       "</div>";
@@ -1603,6 +1630,24 @@
      seventh day goes back to being Saturday, the meat-or-dairy wish disappears,
      and candle-lighting stops being a deadline. Everything else is the same
      product. It sits on the planner's board because it is their call, once. */
+  /* Asked directly: "sending a bunch of gift cards or ordering in might not work
+     in some communities if there are no restaurants, or if people need hot food
+     arriving." Both true, and neither is something the software can work out.
+     The planner knows, so the planner says — once, on their own board. */
+  function helpKindsSwitch() {
+    var on = state.data.train.helpKinds || KINDS.map(function (k) { return k.key; });
+    return '<div class="f" style="margin-top:14px">' +
+      '<span class="f-legend">Ways to help, other than cooking</span>' +
+      '<div class="hint">Turn off anything that does not exist where you are. ' +
+      "Nobody will be offered it.</div>" +
+      '<div class="chips">' +
+        KINDS.map(function (k) {
+          return '<button class="chip small" data-act="toggle-helpkind" data-k="' + k.key +
+            '" aria-pressed="' + (on.indexOf(k.key) > -1) + '">' + esc(k.label) + "</button>";
+        }).join("") +
+      "</div></div>";
+  }
+
   function calendarSwitch() {
     var on = isJewish();
     return '<div class="calswitch">' +
@@ -1619,16 +1664,19 @@
        whole thing look like it had two halves. It is a place you go with a
        question, so it lives down here with the other two places you go with a
        question, and the board is just the board. */
+    /* "Ask Rivky is confusing, people might not know the person running the
+       thing." A first name on its own assumes you were there when it was
+       explained. The name and the reason travel together now, and the button is
+       full width because it is the one people actually need. */
     return '<div class="section-label">If you need something</div>' +
+      '<button class="help-btn wide" data-act="message-planner">' + icon("chat") +
+        " Ask " + esc(t.planner) + " — she's running this</button>" +
       '<div class="help-row">' +
       '<button class="help-btn" data-act="open-chat">' + icon("chat") + " Ask golde.</button>" +
       '<button class="help-btn" data-act="keep-link">' + icon("link") + " Keep this link</button>" +
       "</div>" +
-      '<div class="help-row">' +
-      '<button class="help-btn" data-act="message-planner">' + icon("chat") + " Ask " +
-        esc(t.planner.split(" ")[0]) + "</button>" +
-      '<button class="help-btn" data-act="feedback">' + icon("note") + " Something's wrong</button>" +
-      "</div>";
+      '<button class="help-btn wide" data-act="feedback">' + icon("note") +
+        " Something about this is wrong</button>";
   }
 
   function fact(k, v, raw) {
@@ -1684,6 +1732,7 @@
           "</span></div>" +
           '<button class="btn block ghost" data-act="extend-week">Add another week</button>'
         : "") +
+      helpKindsSwitch() +
       calendarSwitch() +
       '<button class="mini-link" data-act="toggle-train">Done</button>' +
       "</div>";
@@ -2403,13 +2452,19 @@
   function renderCover() {
     return '<div class="cover">' +
       '<div class="cover-mark">golde.</div>' +
+      /* Three sentences in a row started with "She" and the only thing before
+         them was a wordmark, which reads as a brand rather than a person. She
+         is named first now, and the pronouns have somewhere to land. Capital
+         Golde is the character; lowercase golde. is the thing on the tin. */
+      '<p class="cover-who"><b>Golde</b> is your friendly robotic bubby. She keeps ' +
+        "everything in the right place so everybody knows what is going on.</p>" +
       '<p class="cover-line">When someone has a baby, or a loss, or just a week that has ' +
         "flattened them, everybody cooks. When everybody's eating together, they " +
-        "all bring something. She keeps the list straight either way.</p>" +
+        "all bring something. Golde keeps the list straight either way.</p>" +
       '<div class="cover-ways">' +
         '<button class="btn block" data-act="cover-plan">' +
           "I'm setting one up</button>" +
-        '<p class="cover-sub">Meals for a family, or one meal everybody brings to. She asks ' +
+        '<p class="cover-sub">Meals for a family, or one meal everybody brings to. Golde asks ' +
           "you a few things on WhatsApp and hands you a link to share with your group.</p>" +
         /* Same action as the link out of the setup conversation: both mean
            "take me to the board as a somebody", so there is one way in, not two. */
@@ -2764,7 +2819,7 @@
       body += '<div class="f"><span class="f-legend">What are you thinking?</span>' +
         '<div class="chips">' +
           modeChip("cook", "I'm cooking", mode) +
-          modeChip("nocook", "I don't cook", mode) +
+          modeChip("nocook", "Another way", mode) +
         "</div></div>";
     }
 
@@ -2807,7 +2862,7 @@
       body += '<div class="f"><span class="f-legend">How would you like to help?</span>' +
         '<div class="hint">Just as good as a casserole. Better, some weeks.</div>' +
         '<div class="chips">' +
-          KINDS.map(function (k) { return kindChip(k.key, k.chip, kind); }).join("") +
+          offeredKinds().map(function (k) { return kindChip(k.key, k.chip, kind); }).join("") +
         "</div></div>";
       body += '<div class="f"><label for="claim-note">' + esc(kd.ask) + "</label>" +
         '<div class="hint">Optional.</div>' +
@@ -3483,6 +3538,7 @@
         giftcard:   "A gift card, so they can get whatever the day calls for",
         orderin:    "Food ordered in and sent to the door",
         childcare:  "Taking the children for a few hours",
+        other:      "A hand",
         lift:       "A lift, wherever they need to be",
         paper:      "Plates, cups and cutlery, so nobody is washing up",
         house:      "A hand around the house"
@@ -4183,6 +4239,20 @@
     },
 
     "toggle-settled": function () { state.settledOpen = !state.settledOpen; render(); },
+
+    "toggle-helpkind": function (el) {
+      var key = el.getAttribute("data-k");
+      var t = state.data.train;
+      var on = t.helpKinds || KINDS.map(function (k) { return k.key; });
+      var i = on.indexOf(key);
+      if (i > -1) on = on.filter(function (x) { return x !== key; });
+      else on = on.concat([key]);
+      /* Leaving nothing on would give somebody an empty sheet, so the last one
+         stays put and she says why rather than failing quietly. */
+      if (!on.length) { toast("Leave at least one, or there's nothing to offer."); return; }
+      t.helpKinds = on;
+      render();
+    },
 
     "toggle-jewish": function () {
       var t = state.data.train;
