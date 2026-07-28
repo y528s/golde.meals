@@ -24,7 +24,7 @@ const { chromium } = require('playwright-core');
 
   // a clean one, then check it gets remembered to the front
   await p.click('[data-act="use-goto"][data-i="2"]'); await p.waitForTimeout(400);
-  await p.fill('#claim-name','Chani Gold'); await p.fill('#claim-contact','(555) 014-7788');
+  await p.fill('#claim-name','Chani Gold'); await p.fill('#claim-contact','(555) 014-7788'); await p.fill('#claim-email', 'test@example.com');
   await p.click('[data-act="submit-claim"]'); await p.waitForTimeout(800);
   console.log('clean pick had no pop:', !(await p.isVisible('.sheet')));
 

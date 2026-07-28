@@ -13,7 +13,7 @@ const { chromium } = require('playwright-core');
   await board();
   await (await p.$$('button:has-text("I\'ll cook Tuesday")'))[0].click(); await p.waitForTimeout(400);
   await p.fill('#claim-dish','Mushroom-free vegetable lasagna');
-  await p.fill('#claim-name','Chani Gold'); await p.fill('#claim-contact','(555) 014-7788');
+  await p.fill('#claim-name','Chani Gold'); await p.fill('#claim-contact','(555) 014-7788'); await p.fill('#claim-email', 'test@example.com');
   await p.click('[data-act="submit-claim"]'); await p.waitForTimeout(500);
   if (await p.isVisible('[data-act="force-claim"]')) { await p.click('[data-act="force-claim"]'); await p.waitForTimeout(700); }
 

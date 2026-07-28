@@ -308,7 +308,7 @@
   /* Claiming a night creates (or updates) the person's record. Choosing a
      channel and handing over a number IS the opt-in — the thing that makes a
      1:1 reminder allowed. Nobody is added to this list without doing that. */
-  function upsertContact(name, channel, handle) {
+  function upsertContact(name, channel, handle, email) {
     var list = state.data.contacts;
     var first = name.split(" ")[0].toLowerCase();
     var existing = list.filter(function (c) {
@@ -320,6 +320,7 @@
     if (existing) {
       existing.channel = channel;
       if (handle) existing.phone = handle;
+      if (email) existing.email = email;
       if (reachable) existing.optedIn = true;
       return existing;
     }
@@ -327,6 +328,7 @@
       id: "c" + (++state.slotSeq),
       name: name,
       phone: handle || (channel === "calendar" ? "Calendar reminder" : "No reminder"),
+      email: email || "",
       channel: channel,
       optedIn: reachable
     };
@@ -810,6 +812,43 @@
     ];
   }
 
+  /* Asked directly: "if someone sent a link, how would you access it after
+     clicking? Should there be an easy to remember code word to enter?"
+
+     Yes, and the memorable part should not be random. A capability URL —
+     /meals/7k3n/cohen-08-26-9xqm — is unguessable, which is the point, and
+     unsayable, which is the problem. Nobody reads that down the phone to a
+     woman who has lost the message.
+
+     So every board also has a code made of the thing everybody already knows:
+     the family's name and two digits. "Cohens 41" survives being repeated
+     across a kitchen, written on the back of a receipt, or spelled out to
+     somebody's mother. The digits keep two Cohens in one town apart.
+
+     It is a way back in, not a way past the door: the code only resolves for
+     somebody who has already been given the link once, because the planner's
+     namespace still has to match. A code on its own is not an invitation. */
+  function boardCode(t) {
+    t = t || state.data.train;
+    if (t.code) return t.code;
+    var word = String(t.recipientFamily || "meals")
+      .replace(/^the\s+/i, "").replace(/\s+family$/i, "")
+      .replace(/[^a-z0-9]+/gi, "").toLowerCase() || "meals";
+    /* Stable for a given name rather than random, so the same train shows the
+       same code every time this demo is opened. */
+    var n = 0;
+    for (var i = 0; i < word.length; i++) n = (n * 31 + word.charCodeAt(i)) % 90;
+    t.code = word + " " + (10 + n);
+    return t.code;
+  }
+
+  function codeMatches(typed) {
+    var clean = function (v) {
+      return String(v || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    };
+    return clean(typed) === clean(boardCode());
+  }
+
   function boardUrl() {
     return isPotluck() ? "golde.meals/shared-meal" : "golde.meals/the-cohens";
   }
@@ -1162,11 +1201,7 @@
                 about the night, the other about you. A tester asked for the pair
                 to match, and he was right: both are now about cooking. */
              '" data-slot="' + slot.id + '">I\'ll cook ' + esc(slotWhen(day, slot)) + "</button>" +
-             /* "I don't cook" was read as "I'm out". It has never meant that — it
-                opens the list of other ways to help. Both buttons now start with
-                "I'll", because both are offers. */
-             '<button class="btn sm ghost" data-act="claim-nocook" data-day="' + day.id +
-             '" data-slot="' + slot.id + '">I\'ll help another way</button></div>';
+             "</div>";
       } else if (state.role === "planner") {
         h += '<div class="slot-actions">' +
              '<button class="mini-link" data-act="claim" data-day="' + day.id + '" data-slot="' + slot.id +
@@ -1262,7 +1297,9 @@
   /* The week, as a picture. Each block is either a tap that takes a night or a
      statement that one is handled — no legend needed to tell them apart. */
   function weekStrip() {
-    var h = '<div class="weekstrip">';
+    /* Seven or fewer fit the width; a longer run scrolls and earns the fade. */
+    var h = '<div class="weekstrip" data-fits="' +
+      (state.data.days.length <= 7 ? "yes" : "no") + '">';
     state.data.days.forEach(function (day) {
       var free = day.needed && day.slots.filter(function (x) { return !x.filled; })[0];
       var mine = day.slots.some(function (x) { return x.filled && x.mine; });
@@ -1329,6 +1366,9 @@
       "worth reading before you cook: a deadline, an allergy, or three of the same dish in a row.</p>" +
       "</div>";
   }
+
+  /* Parked on purpose — see the note where it used to be rendered. */
+  var PARKED_OTHER_WAYS = true;
 
   function boardSender() {
     var t = state.data.train;
@@ -1425,11 +1465,15 @@
     h += label("About the " + shortFamily(t));
     h += recipientPanel(false, false);
 
-    if (!t.wrapped && !t.paused) {
-      h += label("Not cooking?");
-      h += '<button class="btn block ghost" data-act="claim-nocook">' +
-        "There are other ways to help</button>";
-    }
+    /* "There are other ways to help" — groceries, a lift, childcare, paper goods
+       — is parked, not deleted. The machinery is all still here (KINDS, the
+       planner's switch for what exists locally, the sheet) and turning it back
+       on is one line. It went away because the board should ask for exactly one
+       thing until people are reliably doing that one thing.
+
+       To bring it back: restore the button below and the pair on each open
+       night in slotRow. Nothing else was removed. */
+    void PARKED_OTHER_WAYS;
     h += helpFooter();
 
     return h;
@@ -2554,6 +2598,14 @@
           "Somebody sent me a link</button>" +
         '<p class="cover-sub">What everybody else sees: the week, what people are bringing, ' +
           "and one tap to take a night.</p>" +
+        /* The third way in, for the person who has lost the message. */
+        '<div class="codein">' +
+          '<label for="code-in">Been sent a code?</label>' +
+          '<div class="codein-row">' +
+            '<input type="text" id="code-in" placeholder="Cohens 41" autocomplete="off" ' +
+              'autocapitalize="off" spellcheck="false">' +
+            '<button class="btn sm" data-act="enter-code">Go</button>' +
+          "</div></div>" +
       "</div>" +
       '<p class="cover-foot">A prototype. Nothing is sent to anybody and nothing is saved — ' +
         "close the tab and it forgets you.</p>" +
@@ -2808,6 +2860,10 @@
     if (nameField) {
       nameField.addEventListener("input", function () { state.form.name = nameField.value; });
     }
+    var emailField = host.querySelector("#claim-email");
+    if (emailField) {
+      emailField.addEventListener("input", function () { state.form.email = emailField.value; });
+    }
     var contactField = host.querySelector("#claim-contact");
     if (contactField) {
       contactField.addEventListener("input", function () { state.form.contact = contactField.value; });
@@ -2951,37 +3007,22 @@
       '<div class="hint">So they know who to thank. No account, nothing to remember.</div>' +
       '<input type="text" id="claim-name" placeholder="Chani Gold" value="' + esc(state.form.name || "") + '"></div>';
 
-    /* Signing up is the opt-in. This is the moment she's allowed to ask how to
-       reach you, and the only moment — so she asks once, warmly, and never again. */
-    var ch = state.form.channel || "whatsapp";
-    body += '<div class="f"><span class="f-legend">How should I remind you?</span>' +
-      '<div class="hint">The day before, so you don\'t have to hold it in your head.</div>' +
-      '<div class="chips">' +
-        CHANNELS.map(function (c) {
-          return '<button class="chip small" data-act="set-channel" data-channel="' + c.key +
-            '" aria-pressed="' + (ch === c.key) + '">' + esc(c.label) + "</button>";
-        }).join("") +
-      "</div></div>";
+    /* Five channel chips, each hiding or showing a different field, was a lot of
+       machinery for one question. Both a number and an email, always, is fewer
+       decisions for the person signing up and more ways to reach them for the
+       person running it — and it is the answer to "how do I get reminded"
+       without anybody having to choose. */
+    body += '<div class="f"><label for="claim-contact">Your mobile number</label>' +
+      '<div class="hint">With the country code, please — I don\'t guess where anybody is. ' +
+      "I'll message you the day before, and never show it on the board.</div>" +
+      '<input type="tel" id="claim-contact" placeholder="+972 50 000 0000" value="' +
+      esc(state.form.contact || "") + '"></div>';
 
-    var def = channelDef(ch);
-    if (def.needs) {
-      body += '<div class="f"><label for="claim-contact">' + esc(def.fieldLabel) + "</label>" +
-        '<div class="hint">' +
-        (def.needs === "phone"
-          ? "With the country code, please — I don't guess where anybody is. "
-          : "") +
-        'Just me — it never shows up on the board. And nothing here is saved; ' +
-        'this is a demo.</div>' +
-        '<input type="' + (def.needs === "email" ? "email" : "tel") + '" id="claim-contact" ' +
-        'placeholder="' + esc(def.placeholder) + '" value="' + esc(state.form.contact || "") + '"></div>';
-    } else if (ch === "calendar") {
-      body += '<div class="golde-note tight"><span class="gn-mark">golde.</span><span>' +
-        esc("I'll hand you a calendar file and your own phone will do the nagging. " +
-            "No number, nothing for me to hold onto.") + "</span></div>";
-    } else {
-      body += '<div class="golde-note tight"><span class="gn-mark">golde.</span><span>' +
-        esc("Not a word from me, then. You know your own head best.") + "</span></div>";
-    }
+    body += '<div class="f"><label for="claim-email">Your email</label>' +
+      '<div class="hint">In case a message does not get through. Nothing here is saved; ' +
+      "this is a demo.</div>" +
+      '<input type="email" id="claim-email" placeholder="you@example.com" value="' +
+      esc(state.form.email || "") + '"></div>';
 
     var label = potCourse ? "Put me down for this"
               : day ? "Sign me up for " + esc(dayName(day.iso))
@@ -3325,6 +3366,11 @@
 
     body += '<div class="linkbox">' + esc(boardLink()) + "</div>";
 
+    body += '<div class="codebox"><span class="cb-lab">Or just remember this</span>' +
+      '<span class="cb-code">' + esc(cap(boardCode(t))) + "</span>" +
+      '<span class="cb-note">Type it on the front page and you are back here. ' +
+      "Short enough to tell somebody down the phone.</span></div>";
+
     if (mine) {
       body += '<div class="golde-note tight"><span class="gn-mark">golde.</span><span>' +
         esc("You've got " + dayName(mine.day.iso) + ", so it'll be in your reminder as well. " +
@@ -3615,13 +3661,18 @@
       if (nf) nf.focus();
       return;
     }
-    var chDef = channelDef(f.channel || "whatsapp");
-    if (chDef.needs && !(f.contact || "").trim()) {
-      toast(chDef.needs === "email"
-        ? "An email address and I'll do the rest."
-        : "A number, or I've no way to reach you.");
+    if (!(f.contact || "").trim()) {
+      toast("A number, or I've no way to remind you.");
       var cf = document.querySelector("#claim-contact");
       if (cf) cf.focus();
+      return;
+    }
+    var email = (f.email || "").trim();
+    if (!email || email.indexOf("@") < 1 || email.indexOf(".", email.indexOf("@")) < 0) {
+      toast(email ? "That email has a typo in it, I think."
+                  : "An email too, in case a message doesn't get through.");
+      var ef = document.querySelector("#claim-email");
+      if (ef) ef.focus();
       return;
     }
 
@@ -3666,7 +3717,7 @@
     }
 
     var others = day.slots.filter(function (x) { return x.filled; }).length;
-    var channel = f.channel || "whatsapp";
+    var channel = "whatsapp";
     slot.filled = true;
     slot.kind = kind;
     slot.by = name;
@@ -3678,7 +3729,7 @@
 
     /* The signup pushes a record into the platform. This is where a stranger
        becomes someone Golde is allowed to write to, and by which route. */
-    upsertContact(name, channel, (f.contact || "").trim());
+    upsertContact(name, channel, (f.contact || "").trim(), (f.email || "").trim());
     if (kind === "meal") rememberDish(dish);
     if (channel === "calendar") calendarFile(day, slot);
 
@@ -4239,6 +4290,20 @@
 
     "finish-setup": function () { finishSetup(); },
     "cover-plan": function () { goto("setup"); },
+
+    "enter-code": function () {
+      var el = $("#code-in");
+      var typed = el ? el.value : "";
+      if (!typed.trim()) { if (el) el.focus(); return; }
+      if (!codeMatches(typed)) {
+        toast("I don't know that one. Check the spelling, or ask whoever sent it.");
+        if (el) el.select();
+        return;
+      }
+      state.role = "sender";
+      goto("board");
+      toast("Here you are.");
+    },
 
     "skip-setup": function () {
       /* Straight to the board, which is where a real link lands you. Routing the

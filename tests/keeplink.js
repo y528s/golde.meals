@@ -45,7 +45,7 @@ const EXE = process.env.CHROME || '/opt/pw-browsers/chromium-1194/chrome-linux/c
   await p.waitForTimeout(400);
   await p.fill('#claim-dish', 'Vegetable soup');
   await p.fill('#claim-name', 'Chani Gold');
-  await p.fill('#claim-contact', '(555) 014-7788');
+  await p.fill('#claim-contact', '(555) 014-7788'); await p.fill('#claim-email', 'test@example.com');
   await p.click('[data-act="submit-claim"]'); await p.waitForTimeout(900);
   console.log('\noffered right after claiming:',
     await p.isVisible('#chat-scroll [data-act="keep-link"]'));

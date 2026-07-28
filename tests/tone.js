@@ -26,7 +26,7 @@ const { chromium } = require('playwright-core');
   await (await p.$$('#surface-board button:has-text("I\'ll cook Tuesday")'))[0].click();
   await p.waitForTimeout(400);
   await p.fill('#claim-dish','Roast chicken and potatoes');
-  await p.fill('#claim-name','Chani Gold'); await p.fill('#claim-contact','(555) 014-7788');
+  await p.fill('#claim-name','Chani Gold'); await p.fill('#claim-contact','(555) 014-7788'); await p.fill('#claim-email', 'test@example.com');
   await p.click('[data-act="submit-claim"]'); await p.waitForTimeout(500);
   if (await p.isVisible('[data-act="force-claim"]')) { await p.click('[data-act="force-claim"]'); await p.waitForTimeout(700); }
   const latest = (await p.$$eval('#chat-scroll .notice.from-golde', e=>e.map(x=>x.innerText)))[0];

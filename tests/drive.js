@@ -42,7 +42,7 @@ const URL = 'http://localhost:8099/';
   const hint = await p.textContent('#live-hint');
   console.log('live hint:', JSON.stringify(hint));
   await p.fill('#claim-name', 'Chani Gold');
-  await p.fill('#claim-contact', '(555) 014-7788');
+  await p.fill('#claim-contact', '(555) 014-7788'); await p.fill('#claim-email', 'test@example.com');
   await p.screenshot({ path: OUT + '/03-desktop-claim-sheet.png' });
 
   await p.click('[data-act="submit-claim"]');
@@ -135,15 +135,11 @@ const URL = 'http://localhost:8099/';
   console.log('no horizontal overflow:', hscroll);
   /* skip-setup lands on the board already */
   await mp.screenshot({ path: OUT + '/11-mobile-board.png' });
-  await (await mp.$$('button:has-text("I\'ll help another way")'))[0].click();
-  await mp.waitForTimeout(400);
-  await mp.click('[data-act="set-kind"][data-kind="giftcard"]'); await mp.waitForTimeout(300);
-  await mp.fill('#claim-name', 'Bracha Levi');
-  await mp.fill('#claim-contact', '(555) 014-3311');
-  await mp.screenshot({ path: OUT + '/12-mobile-nocook.png' });
-  await mp.click('[data-act="submit-claim"]'); await mp.waitForTimeout(700);
-  console.log('nocook claimed:', (await mp.textContent('#chat-scroll')).includes('gift card'));
-  await mp.screenshot({ path: OUT + '/13-mobile-confirmed.png' });
+  /* "There are other ways to help" is parked, so the board offers one thing:
+     cook a night. The machinery behind it is untouched — see PARKED_OTHER_WAYS
+     in app.js — and this step comes back with the button. */
+  console.log('the board asks for one thing:',
+    (await mp.$$('[data-act="claim-nocook"]')).length === 0);
 
   // mobile allergen pop mid-flow (for the PR screenshot)
   await board(mp);
@@ -152,7 +148,7 @@ const URL = 'http://localhost:8099/';
     await t2[0].click(); await mp.waitForTimeout(400);
     await mp.fill('#claim-dish', 'Chicken pad thai');
     await mp.fill('#claim-name', 'Bracha Levi');
-  await mp.fill('#claim-contact', '(555) 014-3311');
+  await mp.fill('#claim-contact', '(555) 014-3311'); await mp.fill('#claim-email', 'test@example.com');
     await mp.click('[data-act="submit-claim"]'); await mp.waitForTimeout(500);
     await mp.screenshot({ path: OUT + '/14-mobile-allergen-pop.png' });
     console.log('mobile allergen fired:', (await mp.textContent('.sheet-body')).includes('nuts'));

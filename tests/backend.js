@@ -63,7 +63,7 @@ async function seedStore(page) {
   await A.waitForTimeout(400);
   await A.fill('#claim-dish','Lasagna');
   await A.fill('#claim-name','Chani Gold');
-  await A.fill('#claim-contact','(555) 014-7788');
+  await A.fill('#claim-contact','(555) 014-7788'); await A.fill('#claim-email', 'test@example.com');
   await A.click('[data-act="submit-claim"]'); await A.waitForTimeout(900);
   const stats1 = await (await fetch(BASE+'/__stats')).json();
   console.log('claim written to backend:', stats1.writes >= 1);
@@ -81,7 +81,7 @@ async function seedStore(page) {
   await B.waitForTimeout(400);
   await B.fill('#claim-dish','Roast chicken');
   await B.fill('#claim-name','Bracha Levi');
-  await B.fill('#claim-contact','(555) 014-3311');
+  await B.fill('#claim-contact','(555) 014-3311'); await B.fill('#claim-email', 'test@example.com');
   await B.click('[data-act="submit-claim"]'); await B.waitForTimeout(600);
   if (await B.isVisible('[data-act="force-claim"]')) { await B.click('[data-act="force-claim"]'); await B.waitForTimeout(600); }
 

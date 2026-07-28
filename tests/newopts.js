@@ -47,7 +47,7 @@ const EXE = process.env.CHROME || '/opt/pw-browsers/chromium-1194/chrome-linux/c
   /* The field is only worth having if it stops somebody. */
   await p.click('#surface-board .daycard [data-act="claim"]'); await p.waitForTimeout(400);
   await p.fill('#claim-dish','Creamy strawberry trifle');
-  await p.fill('#claim-name','Test'); await p.fill('#claim-contact','(555) 014-0000');
+  await p.fill('#claim-name','Test'); await p.fill('#claim-contact','(555) 014-0000'); await p.fill('#claim-email', 'test@example.com');
   await p.click('[data-act="submit-claim"]'); await p.waitForTimeout(500);
   const body = await p.textContent('.sheet-body');
   console.log('\nfree-text allergen FIRES:', /strawberr/i.test(body));

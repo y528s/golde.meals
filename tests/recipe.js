@@ -38,7 +38,7 @@ const { chromium } = require('playwright-core');
   await (await p.$$('#surface-board button:has-text("I\'ll cook Tuesday")'))[0].click();
   await p.waitForTimeout(400);
   await p.fill('#claim-dish','Potato leek soup'); await p.fill('#claim-name','Chani Gold');
-  await p.fill('#claim-contact','(555) 014-7788');
+  await p.fill('#claim-contact','(555) 014-7788'); await p.fill('#claim-email', 'test@example.com');
   await p.click('[data-act="submit-claim"]'); await p.waitForTimeout(800);
 
   await p.click('#demo-fab'); await p.waitForTimeout(250);

@@ -843,13 +843,28 @@ button.dc-pref:hover { border-color: currentColor; }
    Three states, readable at a glance and without reading: a + you can tap, a
    dot somebody else has, a tick that is yours. Scrolls sideways for long runs.
    ========================================================================== */
+/* A week has to fit. Seven cells at a fixed 56px overflowed a 390px phone and
+   clipped Friday and Shabbat at the edge with nothing to say they were there —
+   so the two days most likely to need somebody were the two you could not see.
+
+   The cells flex instead: seven fill the width exactly, and a longer run holds
+   at 46px and scrolls, with a fade at the edge so it is obvious there is more.
+   46px keeps the tap target above the 44px floor. */
 .weekstrip {
-  display: flex; gap: 7px; overflow-x: auto; padding: 2px 2px 12px;
+  display: flex; gap: 6px; overflow-x: auto; padding: 2px 2px 12px;
   scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+  -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 22px), transparent 100%);
+          mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 22px), transparent 100%);
+}
+/* The fade is only honest when there is something behind it. Seven or fewer
+   days fit, so the mask comes off. */
+.weekstrip[data-fits="yes"] {
+  -webkit-mask-image: none; mask-image: none;
 }
 .weekstrip::-webkit-scrollbar { display: none; }
 .ws-day {
-  flex: 0 0 auto; width: 56px; min-height: 76px;
+  flex: 1 0 auto; min-width: 46px; scroll-snap-align: start; min-height: 76px;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
   border-radius: 14px; border: 1.5px solid var(--line); background: var(--card);
   padding: 8px 4px; text-align: center;
@@ -898,3 +913,27 @@ button.dc-pref:hover { border-color: currentColor; }
    question is not "which day" but "which part of the meal". */
 .slot-course { font-family: var(--serif); font-size: 18px; color: var(--ink); }
 .slot-hint { font-size: 15px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+
+/* The code. A link is unguessable and unsayable; this is the sayable half, for
+   the person whose group chat has buried the message. */
+.codebox {
+  display: flex; flex-direction: column; gap: 4px;
+  background: var(--green-wash); border-radius: var(--r-md);
+  padding: 14px 16px; margin-top: 14px;
+}
+.cb-lab { font-size: 13px; letter-spacing: .08em; text-transform: uppercase;
+          font-weight: 700; color: var(--green); }
+.cb-code {
+  font-family: var(--serif); font-size: 30px; line-height: 1.1; color: var(--ink);
+  letter-spacing: -.01em;
+}
+.cb-note { font-size: 15px; color: var(--muted); line-height: 1.45; }
+
+.codein { margin-top: 4px; padding-top: 16px; border-top: 1px solid var(--line-soft); }
+.codein label { display: block; font-size: 15px; color: var(--muted); margin-bottom: 8px; }
+.codein-row { display: flex; gap: 8px; }
+.codein-row input {
+  flex: 1 1 auto; min-width: 0; border: 1.5px solid var(--line); border-radius: 999px;
+  padding: 11px 16px; font-size: 16px; background: var(--card);
+}
+.codein-row input:focus { outline: none; border-color: var(--green-soft); }

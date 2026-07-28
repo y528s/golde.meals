@@ -94,7 +94,7 @@ const EXE = process.env.CHROME || '/opt/pw-browsers/chromium-1194/chrome-linux/c
   await p.waitForTimeout(500);
   await p.fill('#claim-dish', 'Chicken soup with kneidlach');
   await p.fill('#claim-name', 'Bracha Levi');
-  await p.fill('#claim-contact', '+972 50 000 0000');
+  await p.fill('#claim-contact', '+972 50 000 0000'); await p.fill('#claim-email', 'test@example.com');
   await p.click('[data-act="submit-claim"]'); await p.waitForTimeout(900);
 
   await openFriday(); await p.waitForTimeout(500);
