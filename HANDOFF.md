@@ -9,13 +9,13 @@ touching anything; the rest is reference.
 
 A meal train for observant Jewish communities, coordinated by **Golde** — a
 warm, competent character who notices things a spreadsheet can't. Somebody has
-a baby, a surgery, a death in the family; twenty neighbours want to help; the
+a baby, a surgery, a death in the family; twenty people want to help; the
 coordination is a mess of group chats and nobody knows what anyone else is
 bringing.
 
 **The product is one link.** The planner sets a train up by messaging Golde on
 WhatsApp; she hands back a link; they paste it into the group chats they
-already have; neighbours tap it, take a night, and get reminded.
+already have; people tap it, take a night, and get reminded.
 
 **Live demo:** https://y528s.github.io/golde.meals/ (front-end only, resets on
 reload) · **Branch:** `claude/golde-meals-prototype-ci4f0z` · **PR #1**
@@ -47,7 +47,7 @@ Until that is done, treat the backend as unproven in production.
 Platform is one-to-one only. Unofficial libraries (Baileys, whatsapp-web.js)
 can post to groups and will get the number banned.
 
-This kills the obvious idea — "Golde announces the train in the neighbourhood
+This kills the obvious idea — "Golde announces the train in the street's group
 chat" — and it is why the product is shaped the way it is:
 
 | Stage | Where it happens | Why it is allowed |
@@ -133,9 +133,14 @@ revisit before it is not.
 These came from real feedback or real reasoning. Changing them is fine —
 changing them *without knowing why they are there* is not.
 
+<!-- voice-check: off -->
 - **No endearments.** A tester asked "Why is it calling me sweetheart?" and
   answered herself: "I didn't like it." A pet name from a stranger's software is
   presumption wearing the costume of warmth. Enforced by `npm run check`.
+- **No word that spells two ways.** organise/organize, neighbour/neighbor,
+  favourite/favorite. Also enforced by `npm run check`, because this is exactly
+  the kind of rule that survives about a fortnight on memory alone.
+<!-- voice-check: on -->
 - **She sounds different at a shiva.** Occasions carry a register — bright,
   tender, quiet. At a shiva the variety nudge is suppressed (nobody grieving
   cares that Monday was also pasta) and **the donation ask is not shown at all**.
@@ -161,9 +166,10 @@ changing them *without knowing why they are there* is not.
 - **Recipes ask permission at the moment of writing** — *"Just Sarah"* or
   *"Sarah, and the book"*. Capturing consent later means chasing forty people,
   and the ones who moved or died you simply cannot use.
-- **Roles are Planner / Sender / Recipient.** Not "neighbour" — it isn't
+- **Roles are Planner / Sender / Recipient.** Not "somebody" — it isn't
   geographical, half of them are shul or family. No word in the UI splits on
-  US/UK spelling, which rules out organiser/organizer.
+  US/UK spelling. These two are also the role keys in the source, so the code
+  and the interface say the same word.
 - **The app does not imitate WhatsApp.** It did, and it confused people into
   thinking their real WhatsApp had misbehaved. Only the *setup* screen is
   chat-styled, because there it is the medium rather than a costume.
@@ -232,10 +238,12 @@ people are cooking — which in the UK/EU shades into special-category data.
 
 ## 10. Open questions
 
+<!-- voice-check: off -->
 - **Does the character survive contact with people?** One tester liked the
   prompts and the reminders; the same tester disliked being called sweetheart.
   The endearments are gone, but nobody has yet confirmed the *rest* of the voice
   earns its keep. That is the biggest unknown in the product.
+<!-- voice-check: on -->
 - **Is "yente" the wrong target?** A yente is a busybody, and nobody wants a
   busybody running their meal train. What is actually built is someone competent
   who has done this a hundred times. Sharpening toward that may be the move.

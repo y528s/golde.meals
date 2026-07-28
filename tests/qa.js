@@ -41,7 +41,7 @@ const EXE = process.env.CHROME || '/opt/pw-browsers/chromium-1194/chrome-linux/c
 
   // contact manager
   await p.click('#demo-fab'); await p.waitForTimeout(250);
-  await p.click('[data-act="set-role"][data-role="organizer"]'); await p.waitForTimeout(250);
+  await p.click('[data-act="set-role"][data-role="planner"]'); await p.waitForTimeout(250);
   await p.click('#surface-chat [data-act="open-board"]'); await p.waitForTimeout(400);
   console.log('contacts rendered:', (await p.$$('#surface-board .contact')).length);
   console.log('opt-in warning shown:', (await p.textContent('#board-scroll')).includes("said I may write"));

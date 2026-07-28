@@ -13,7 +13,7 @@ const { chromium } = require('playwright-core');
   await board();
   const bt = await p.textContent('#surface-board');
   console.log('pause is guarded:', bt.includes('already got shopping in for you'));
-  console.log('  routes to organizer:', await p.isVisible('[data-act="message-organizer-pause"]'));
+  console.log('  routes to planner:', await p.isVisible('[data-act="message-planner-pause"]'));
   console.log('  partial stop offered:', bt.includes('Stop anything not yet claimed'));
   await p.screenshot({ path: __dirname+'/pause-guard.png' });
 

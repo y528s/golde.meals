@@ -9,8 +9,8 @@ const { chromium } = require('playwright-core');
   /* skip-setup lands on the board already */
   const board = async () => { if (await p.getAttribute('#surface-board','data-pos')!=='on') {
     await p.click('#surface-chat [data-act="open-board"]'); await p.waitForTimeout(450);} };
-  for (const r of ['neighbor','organizer','family']) {
-    if (r!=='neighbor') { await p.click('#demo-fab'); await p.waitForTimeout(250);
+  for (const r of ['sender','planner','family']) {
+    if (r!=='sender') { await p.click('#demo-fab'); await p.waitForTimeout(250);
       await p.click(`[data-act="set-role"][data-role="${r}"]`); await p.waitForTimeout(350); }
     await board();
     const t = await p.textContent('#surface-board');
@@ -18,7 +18,7 @@ const { chromium } = require('playwright-core');
                 ' feedback:', (await p.$$('#surface-board [data-act="feedback"]')).length);
   }
   await p.click('#demo-fab'); await p.waitForTimeout(250);
-  await p.click('[data-act="set-role"][data-role="neighbor"]'); await p.waitForTimeout(350);
+  await p.click('[data-act="set-role"][data-role="sender"]'); await p.waitForTimeout(350);
   await board();
   await p.click('#surface-board [data-act="toggle-details"]').catch(()=>{}); await p.waitForTimeout(350);
   const dt = await p.textContent('#board-scroll');

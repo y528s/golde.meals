@@ -20,7 +20,7 @@ const { chromium } = require('playwright-core');
   await role('family');
   await p.locator('#surface-board .daycard, #surface-board .compact-day', { hasText: 'lasagna' }).locator('[data-act="ask-recipe"]').click();
   await p.waitForTimeout(600);
-  await role('neighbor');
+  await role('sender');
   await p.click('#surface-board [data-act="write-recipe"]'); await p.waitForTimeout(500);
   console.log('default scope is private:',
     await p.getAttribute('[data-act="set-recipe-scope"][data-scope="private"]','aria-pressed'));

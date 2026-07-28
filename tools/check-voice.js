@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* =============================================================================
-   Voice check — words golde. does not say
+   Voice check — words golde. does not say, and words that spell two ways
    -----------------------------------------------------------------------------
    Run:  node tools/check-voice.js
    Exits non-zero if any banned word reaches a user-facing string.
@@ -16,14 +16,26 @@
    trip it. Where a word has a legitimate non-vocative sense — honey and sugar
    are food, "they love lemon" is a preference — only the form used to address
    a person is banned.
+
+   The second half of this file enforces a different rule, asked for directly:
+   avoid words that spell one way in London and another in New York. This link
+   gets forwarded from Hendon to Ramat Beit Shemesh to Lakewood, and a spelling
+   is a small signal about whose product this is. There is almost always a plain
+   word that both sides already agree on — "set up" for organise/organize,
+   "everybody" for neighbours/neighbors — so the rule costs nothing and is only
+   hard to keep by memory. Hence: not memory.
+
+   Comments are scanned too for this half, because the next person to write copy
+   reads the comments first and will match whatever they find there.
    ============================================================================= */
 
 const fs = require("fs");
 const path = require("path");
 
 const ROOT = path.join(__dirname, "..");
-const FILES = ["docs/app.js", "docs/sync.js", "docs/index.html", "docs/styles.css",
-               "worker/src/index.js"];
+const FILES = ["docs/app.js", "docs/sync.js", "docs/hebcal.js", "docs/index.html",
+               "docs/styles.css", "worker/src/index.js", "worker/src/slug.js",
+               "tools/fetch-calendar.js", "README.md", "HANDOFF.md"];
 
 /* Never, in any form. */
 const BANNED = [
@@ -59,6 +71,37 @@ const VOCATIVE = VOCATIVE_WORDS.map(function (pair) {
   return [w, new RegExp("(^|[,;\u2014-]|[\"'>])\\s*" + w + "\\b\\s*([,.!?]|$)", "i"), pair[1]];
 });
 
+/* Spelled one way here, another there. The replacement is a word nobody has to
+   think about — which is the point, since the reader shouldn't either. */
+const TWO_SPELLINGS = [
+  [/\borganis|\borganiz/i,   "organise/organize", "\"set up\", \"run\", \"planner\""],
+  [/\bneighbou?r/i,          "neighbour/neighbor", "\"everybody\", \"people\", \"somebody\""],
+  [/\brecognis|\brecogniz/i, "recognise/recognize", "\"notice\", \"know\""],
+  [/\brealis|\brealiz/i,     "realise/realize",   "\"see\", \"work out\""],
+  [/\bapologis|\bapologiz/i, "apologise/apologize", "\"say sorry\""],
+  [/\bcustomis|\bcustomiz/i, "customise/customize", "\"change\", \"set\""],
+  [/\bminimis|\bminimiz/i,   "minimise/minimize",  "\"cut\", \"keep small\""],
+  [/\bmaximis|\bmaximiz/i,   "maximise/maximize",  "\"get the most from\""],
+  [/\bprioritis|\bprioritiz/i, "prioritise/prioritize", "\"put first\""],
+  [/\bsummaris|\bsummariz/i, "summarise/summarize", "\"sum up\""],
+  [/\banalys[ei]|\banalyz/i, "analyse/analyze",   "\"look at\", \"work out\""],
+  [/\bapologis|\bapologiz/i, "apologise/apologize", "\"say sorry\""],
+  [/\bfavou?rite/i,          "favourite/favorite", "\"the one they love\""],
+  [/\bhonou?r(?!ed by)/i,    "honour/honor",       "\"do right by\""],
+  [/\bbehaviou?r/i,          "behaviour/behavior", "\"how it acts\""],
+  [/\bcolou?rs?\b(?!\s*[:;{])/i, "colour/color",  "a specific shade, or nothing"]
+];
+
+/* Two exemptions, both real:
+   - CSS and inline styles, where `color` and `behavior` are the language's own
+     words and cannot be spelled the other way.
+   - The line that matches what a user types. "My neighbour" and "my neighbor"
+     both have to be caught there, so both spellings must appear. */
+const SPELLING_SKIP = [
+  /color\s*:/i, /-color\b/i, /currentColor/, /overscroll-behavior/, /scroll-behavior/,
+  /RELATIONSHIP = new RegExp/, /colleague\|boss\|rabbi/
+];
+
 /* Strip comments so a note about the rule doesn't trip the rule. */
 function stripComments(src, ext) {
   if (ext === ".css") return src.replace(/\/\*[\s\S]*?\*\//g, " ");
@@ -67,6 +110,12 @@ function stripComments(src, ext) {
     .replace(/\/\*[\s\S]*?\*\//g, " ")
     .replace(/(^|[^:"'`\\])\/\/[^\n]*/g, "$1 ");
 }
+
+/* The documentation has to be able to name the words it forbids. A pair of
+   markers turns the check off and on again, and they are visible in the source
+   so nobody switches it off quietly. */
+const OFF = /voice-check:\s*off/i;
+const ON  = /voice-check:\s*on/i;
 
 let failures = [];
 
@@ -79,7 +128,11 @@ for (const rel of FILES) {
   const cleaned = stripComments(raw, ext);
   const lines = cleaned.split("\n");
 
+  let muted = false;
   lines.forEach((line, i) => {
+    if (OFF.test(line)) muted = true;
+    if (ON.test(line)) { muted = false; return; }
+    if (muted) return;
     const lower = line.toLowerCase();
 
     for (const [word, why] of BANNED) {
@@ -90,6 +143,24 @@ for (const rel of FILES) {
     for (const [word, re, why] of VOCATIVE) {
       if (re.test(line)) {
         failures.push({ file: rel, line: i + 1, word: word + " (as address)", why,
+                        text: line.trim().slice(0, 100) });
+      }
+    }
+  });
+
+  /* The spelling half reads the file whole, comments and all. */
+  if (ext === ".css") continue;
+  let mutedToo = false;
+  raw.split("\n").forEach((line, i) => {
+    if (OFF.test(line)) mutedToo = true;
+    if (ON.test(line)) { mutedToo = false; return; }
+    if (mutedToo) return;
+    if (SPELLING_SKIP.some(re => re.test(line))) return;
+    for (const [re, pair, instead] of TWO_SPELLINGS) {
+      if (re.test(line)) {
+        failures.push({ file: rel, line: i + 1, word: pair,
+                        why: "Spells two ways depending on where the reader is. Try " +
+                             instead + " instead.",
                         text: line.trim().slice(0, 100) });
       }
     }

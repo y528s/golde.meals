@@ -1,4 +1,4 @@
-/* The second kind of thing she can organise. A meal train is many nights for one
+/* The second kind of thing she can set up. A meal train is many nights for one
    household; a potluck is one sitting that many households bring to. Different
    shape, same platform — this walks the whole potluck path and checks that none
    of the meal-train furniture leaked through (no week of day cards, no
@@ -56,7 +56,7 @@ const EXE = process.env.CHROME || '/opt/pw-browsers/chromium-1194/chrome-linux/c
   const roles = await p.$$eval('.role-card b', e => e.map(x => x.textContent.trim()));
   console.log('  roles offered: ' + roles.join(', '));
   console.log('  no phantom recipient:', roles.length === 2);
-  await p.click('.role-card[data-role="neighbor"]'); await p.waitForTimeout(500);
+  await p.click('.role-card[data-role="sender"]'); await p.waitForTimeout(500);
   await p.click('[data-act="close-sheet"]').catch(() => {}); await p.waitForTimeout(400);
 
   await (await p.$$('.course.open [data-act="claim"]'))[0].click(); await p.waitForTimeout(500);

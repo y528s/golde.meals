@@ -5,7 +5,7 @@
    and disappears when you close the tab — on purpose.
 
    The voice is the product. Every user-facing string in this file is supposed
-   to sound like a kind, loving neighbor who is also a slightly overbearing
+   to sound like a kind, loving sender who is also a slightly overbearing
    Jewish grandmother: warm, a little bossy, endlessly flexible, never a
    database. If a string here reads like a system message, it's a bug.
    ============================================================================= */
@@ -199,11 +199,11 @@
      =========================================================================== */
 
   var state = {
-    role: "neighbor",          // organizer | neighbor | family
+    role: "sender",          // planner | sender | family
     surface: "cover",          // cover | setup | chat | board
     setup: { i: 0, answers: {}, log: [{ me: false, text: ["Hello. What can I do for you?"] }] },
     data: seed(),
-    filter: "open",            // open | all — what a neighbour actually came for
+    filter: "open",            // open | all — what a somebody actually came for
     details: false,            // the family's full particulars, folded away by default
     trainOpen: false,          // dates and occasion — reference, not a daily action
     contactsOpen: false,       // show the people who are already sorted
@@ -223,8 +223,8 @@
      without implying anybody cooked. These label the interface; Golde herself
      still says "everybody", because no grandmother says "sender". */
   var ROLES = {
-    organizer: { label: "Planner",   who: "the planner",   blurb: "Sets up the train" },
-    neighbor:  { label: "Sender",    who: "a sender",      blurb: "Sends a meal in" },
+    planner: { label: "Planner",   who: "the planner",   blurb: "Sets up the train" },
+    sender:  { label: "Sender",    who: "a sender",      blurb: "Sends a meal in" },
     family:    { label: "Recipient", who: "the recipient", blurb: "Receiving the meals" }
   };
 
@@ -737,7 +737,7 @@
   }
 
   /* One entry in the running record. Golde's own lines read as her; anything a
-     neighbor did reads as a plain fact, because that's what it is. */
+     sender did reads as a plain fact, because that's what it is. */
   function renderNotice(m) {
     var mine = m.dir === "out";
     var golde = m.from === "golde";
@@ -858,7 +858,7 @@
 
     h += '<header class="board-top">' +
       '<div class="row1">' +
-        (state.role === "organizer"
+        (state.role === "planner"
           ? '<button class="backlink" data-act="open-chat">' + icon("back") + " Back to the chat</button>"
           : '<span class="backlink-none" aria-hidden="true"></span>') +
         '<span class="board-mark">golde.</span>' +
@@ -878,9 +878,9 @@
     h += '<div class="scroller" id="board-scroll"><div class="board-body">';
 
     if (isPotluck()) h += boardPotluck();
-    else if (state.role === "organizer") h += boardOrganizer();
+    else if (state.role === "planner") h += boardPlanner();
     else if (state.role === "family") h += boardFamily();
-    else h += boardNeighbor();
+    else h += boardSender();
 
     h += "</div></div>";
     return h;
@@ -939,7 +939,7 @@
     if (!day.needed) {
       h += '<p class="slot-empty" style="margin:10px 0 0">' +
         esc(day.offReason || "No meal needed this day.") + "</p>";
-      if (state.role === "organizer" || state.role === "family") {
+      if (state.role === "planner" || state.role === "family") {
         h += '<div class="slot-actions"><button class="mini-link" data-act="toggle-needed" data-day="' +
           day.id + '">Actually, we could use something this day</button></div>';
       }
@@ -979,7 +979,7 @@
       h += '<div class="golde-note tight"><span class="gn-mark">golde.</span><span>' + esc(ov) + "</span></div>";
     }
 
-    if (state.role === "organizer") {
+    if (state.role === "planner") {
       h += '<div class="slot-actions" style="margin-top:12px">' +
         '<button class="mini-link" data-act="add-slot" data-day="' + day.id + '">Add another slot</button>' +
         '<button class="mini-link" data-act="toggle-needed" data-day="' + day.id + '">No meal needed this day</button>' +
@@ -1003,7 +1003,7 @@
      names, no windows — seven lines you can read in two seconds. */
   function glanceRow(day) {
     if (!day.needed) {
-      var canAdd = state.role === "organizer" || state.role === "family";
+      var canAdd = state.role === "planner" || state.role === "family";
       if (!canAdd) {
         return '<div class="glance off"><span class="g-day">' + esc(dayName(day.iso)) + "</span>" +
           '<span class="g-state">nothing needed</span></div>';
@@ -1123,12 +1123,12 @@
         (slot.meal ? esc(cap(slot.meal)) + " \u2014 nobody yet." : "Nobody yet.") + "</div>";
       if (t.paused) {
         h += '<div class="slot-by">On hold — the family has enough this week.</div>';
-      } else if (state.role === "neighbor") {
+      } else if (state.role === "sender") {
         h += '<div class="slot-actions"><button class="btn sm" data-act="claim" data-day="' + day.id +
              '" data-slot="' + slot.id + '">I\'ll take ' + esc(slotWhen(day, slot)) + "</button>" +
              '<button class="btn sm ghost" data-act="claim-nocook" data-day="' + day.id +
              '" data-slot="' + slot.id + '">I don\'t cook</button></div>';
-      } else if (state.role === "organizer") {
+      } else if (state.role === "planner") {
         h += '<div class="slot-actions">' +
              '<button class="mini-link" data-act="claim" data-day="' + day.id + '" data-slot="' + slot.id +
              '">Put someone down</button>' +
@@ -1166,7 +1166,7 @@
       h += "</div>";
     }
 
-    if (slot.mine && state.role === "neighbor" && slot.recipeAsked && !slot.recipe &&
+    if (slot.mine && state.role === "sender" && slot.recipeAsked && !slot.recipe &&
         !slot.recipeDeclined) {
       h += '<div class="golde-note tight"><span class="gn-mark">golde.</span><span>' +
         esc("Sarah asked for this recipe. Nobody has to write anything down — but she asked, " +
@@ -1178,14 +1178,14 @@
           '">I\'d rather not</button></div>';
     }
 
-    if (slot.mine && state.role === "neighbor") {
+    if (slot.mine && state.role === "sender") {
       h += '<div class="slot-actions">' +
         (slot.delivered ? "" :
           '<button class="mini-link" data-act="mark-delivered" data-slot="' + slot.id + '">Mark it delivered</button>' +
           '<button class="mini-link" data-act="swap" data-slot="' + slot.id + '">Swap my day</button>' +
           '<button class="mini-link danger" data-act="cancel" data-slot="' + slot.id + '">I can\'t make it</button>') +
         "</div>";
-    } else if (state.role === "organizer") {
+    } else if (state.role === "planner") {
       h += '<div class="slot-actions">' +
         '<button class="mini-link" data-act="edit-slot" data-slot="' + slot.id + '">Change the details</button>' +
         '<button class="mini-link danger" data-act="reopen" data-slot="' + slot.id + '">Reopen it</button>' +
@@ -1195,7 +1195,7 @@
     return h;
   }
 
-  /* --- neighbor board --------------------------------------------------------
+  /* --- sender board --------------------------------------------------------
      Rebuilt after a third tester said the same thing in her own words:
 
        "over complicated. There are a lot of words... show don't tell. All the
@@ -1240,7 +1240,7 @@
     return h + "</div>";
   }
 
-  function boardNeighbor() {
+  function boardSender() {
     var t = state.data.train;
     var h = "";
     var open = openDays();
@@ -1321,14 +1321,14 @@
   }
 
   /* --- the potluck board ----------------------------------------------------
-     Two roles, not three. Whoever is hosting is also the one organising, and
+     Two roles, not three. Whoever is hosting is also the one running, and
      everybody else is bringing a dish — there is no third person sitting at home
      waiting to be fed. Showing an empty "Recipient" view would have been the
      square peg. */
 
   function boardPotluck() {
     var t = state.data.train;
-    var host = state.role === "organizer";
+    var host = state.role === "planner";
     var day = state.data.days[0];
     if (!day) return "";
     var open = day.slots.filter(function (s) { return !s.filled; });
@@ -1440,7 +1440,7 @@
   }
 
   function roleLabel() {
-    if (isPotluck()) return state.role === "organizer" ? "Host" : "Bringing something";
+    if (isPotluck()) return state.role === "planner" ? "Host" : "Bringing something";
     return ROLES[state.role].label;
   }
 
@@ -1464,7 +1464,7 @@
           " · kosher, meat and dairy separate") + "</p>";
 
     if (editable) {
-      /* The organizer fields "where do they live?" all week — keep it in reach. */
+      /* The planner fields "where do they live?" all week — keep it in reach. */
       h += '<p class="lede" style="margin:-6px 0 10px">' + esc(t.address) + "</p>" +
         '<button class="btn block ghost" data-act="edit-recipient">Change any of this</button></div>';
       return h;
@@ -1510,10 +1510,10 @@
 
   /* The link gets forwarded well past the people it was meant for. Where a new
      mother lives is not something to hand to a whole group chat, so the address
-     waits until somebody has actually taken a night. Organizer and family always
+     waits until somebody has actually taken a night. Planner and family always
      see it — it's their own house. */
   function canSeeAddress() {
-    return state.role !== "neighbor" || myClaims().length > 0;
+    return state.role !== "sender" || myClaims().length > 0;
   }
 
   /* Two things any real user needs within reach: a person, and somewhere to
@@ -1554,9 +1554,9 @@
     return '<div class="fact"><dt>' + esc(k) + "</dt><dd>" + (raw ? v : esc(v)) + "</dd></div>";
   }
 
-  /* --- organizer board ------------------------------------------------------ */
+  /* --- planner board ------------------------------------------------------ */
 
-  function boardOrganizer() {
+  function boardPlanner() {
     var t = state.data.train;
     var open = openDays();
     var h = "";
@@ -1655,8 +1655,8 @@
     return h;
   }
 
-  /* --- the contact book (organizer only) ------------------------------------
-     Every neighbor Golde can reach, and whether they've said yes to hearing
+  /* --- the contact book (planner only) ------------------------------------
+     Every sender Golde can reach, and whether they've said yes to hearing
      from her. This is the piece that makes the real product work: she talks to
      people one to one, so the list of who she may talk to is the product. */
 
@@ -1871,7 +1871,7 @@
 
     /* Calling off a night somebody has already shopped and cooked for is not
        generosity, it's waste with a kind face on it. Anything already claimed
-       goes through the organizer, who can judge it. */
+       goes through the planner, who can judge it. */
     var imminent = filledSlots().filter(function (x) { return !x.slot.delivered; });
     if (t.paused) {
       h += '<button class="btn block" data-act="unpause">We\'re ready for meals again</button>';
@@ -1879,10 +1879,10 @@
       h += '<div class="golde-note tight" style="margin:0 0 12px"><span class="gn-mark">golde.</span><span>' +
         esc(listify(imminent.map(function (x) { return x.slot.by.split(" ")[0]; })) + " " +
             plural(imminent.length, "has", "have") + " already got shopping in for you. Let me not " +
-            "call that off over your head — have a word with " + organizerName() +
+            "call that off over your head — have a word with " + plannerName() +
             ", who can sort it kindly.") + "</span></div>" +
-        '<button class="btn block" data-act="message-organizer-pause">Message ' +
-          esc(organizerName().split(" ")[0]) + " about it</button>" +
+        '<button class="btn block" data-act="message-planner-pause">Message ' +
+          esc(plannerName().split(" ")[0]) + " about it</button>" +
         '<button class="btn block quiet" style="margin-top:9px" data-act="pause">' +
           "Stop anything not yet claimed</button>";
     } else {
@@ -1900,7 +1900,7 @@
   /* ===========================================================================
      SETUP — the one conversation that really is WhatsApp
      ---------------------------------------------------------------------------
-     The organizer messages golde. first, and that is precisely what makes this
+     The planner messages golde. first, and that is precisely what makes this
      buildable: a user-initiated message opens a 24-hour window in which a
      business may reply in free-form, with no pre-approved templates. Everything
      that ruled out a bot sitting in a group chat does not apply here.
@@ -1970,8 +1970,8 @@
   };
 
   var POT_ROLES = {
-    organizer: { label: "Host",               blurb: "Whose house it is" },
-    neighbor:  { label: "Bringing something", blurb: "Takes a dish" }
+    planner: { label: "Host",               blurb: "Whose house it is" },
+    sender:  { label: "Bringing something", blurb: "Takes a dish" }
   };
 
   function isPotluck() { return state.data.train.kind === "potluck"; }
@@ -2287,13 +2287,13 @@
 
   /* "My mum" is a relationship, not a name. It's what somebody types when they
      are thinking about the person rather than about the board — and the board
-     is going to be read by twenty neighbours who need to know whose door to go
+     is going to be read by twenty people who need to know whose door to go
      to. She notices, and asks once. What comes back is often better than a
      surname: "everyone calls my mum Yaya" is exactly the right label. */
   var RELATIONSHIP = new RegExp("^(my|our|the|a)?\\s*(dear\\s+)?(mum|mom|mother|dad|father|" +
     "parents|sister|brother|sibling|aunt|auntie|uncle|cousin|nephew|niece|grandma|grandmother|" +
     "granny|nana|bubby|bubbe|savta|grandpa|grandfather|zaidy|saba|daughter|son|child|kid|" +
-    "friend|neighbour|neighbor|colleague|boss|rabbi|rebbetzin|chavrusa|in-laws|inlaws|" +
+    "friend|somebody|sender|colleague|boss|rabbi|rebbetzin|chavrusa|in-laws|inlaws|" +
     "mother-in-law|father-in-law|family|couple|lady|woman|man|guy|someone|somebody)\\b", "i");
 
   function looksLikeRelationship(v) {
@@ -2323,18 +2323,18 @@
     return '<div class="cover">' +
       '<div class="cover-mark">golde.</div>' +
       '<p class="cover-line">When someone has a baby, or a loss, or just a week that has ' +
-        "flattened them, the neighbours cook. When everybody's eating together, they " +
+        "flattened them, everybody cooks. When everybody's eating together, they " +
         "all bring something. She keeps the list straight either way.</p>" +
       '<div class="cover-ways">' +
         '<button class="btn block" data-act="cover-plan">' +
-          "I'm organising something</button>" +
+          "I'm setting one up</button>" +
         '<p class="cover-sub">Meals for a family, or one meal everybody brings to. She asks ' +
           "you a few things on WhatsApp and hands you a link to share with your group.</p>" +
         /* Same action as the link out of the setup conversation: both mean
-           "take me to the board as a neighbour", so there is one way in, not two. */
+           "take me to the board as a somebody", so there is one way in, not two. */
         '<button class="btn block ghost" data-act="skip-setup">' +
           "Somebody sent me a link</button>" +
-        '<p class="cover-sub">What a neighbour sees: the week, what everyone is bringing, ' +
+        '<p class="cover-sub">What everybody else sees: the week, what people are bringing, ' +
           "and one tap to take a night.</p>" +
       "</div>" +
       '<p class="cover-foot">A prototype. Nothing is sent to anybody and nothing is saved — ' +
@@ -2465,7 +2465,7 @@
            { id: "n" + (++state.slotSeq), filled: false, meal: "dinner" }]
         : [{ id: "n" + (++state.slotSeq), filled: false }];
       /* Every other day is what most people actually run: there are leftovers,
-         and asking twenty neighbours for seven nights is a harder ask than four. */
+         and asking twenty people for seven nights is a harder ask than four. */
       if (a.cadence === "alternate") {
         day.needed = i % 2 === 0;
         if (!day.needed) day.offReason = "Leftovers from yesterday. Nobody needs to cook.";
@@ -2479,7 +2479,7 @@
       text: ["Here's the board for " + t.recipientFamily + ". Nothing on it yet — " +
              "send it round and let's fill it up."]
     }];
-    state.role = "organizer";
+    state.role = "planner";
     state.filter = "open";
   }
 
@@ -2510,7 +2510,7 @@
 
   /* One sitting, one date, a slot per dish. The train's week of day cards is
      replaced outright rather than folded down to one, because a potluck board
-     that still has Tuesday on it is a lie about what you're organising. */
+     that still has Tuesday on it is a lie about what you're running. */
   function applyPotluck(a, t) {
     var when = whenOption(a.when);
     t.kind = "potluck";
@@ -2548,7 +2548,7 @@
       text: ["Here's the board for " + t.title + ". Nothing on it yet — " +
              "send it round and let people pick."]
     }];
-    state.role = "organizer";
+    state.role = "planner";
     state.filter = "open";
   }
 
@@ -2944,7 +2944,7 @@
       '<button class="btn block quiet" data-act="close-sheet">Leave it where it is</button>');
   };
 
-  /* --- organizer: edit a day ------------------------------------------------ */
+  /* --- planner: edit a day ------------------------------------------------ */
 
   SHEETS.editday = function (s) {
     var day = findDay(s.dayId);
@@ -2983,7 +2983,7 @@
       '<button class="btn block" data-act="close-sheet">That\'s better</button>');
   };
 
-  /* --- organizer: edit what someone is bringing ----------------------------- */
+  /* --- planner: edit what someone is bringing ----------------------------- */
 
   SHEETS.editslot = function (s) {
     var loc = locateSlot(s.slotId);
@@ -3001,7 +3001,7 @@
       '<button class="btn block" data-act="close-sheet">Done</button>');
   };
 
-  /* --- organizer: edit the recipient details -------------------------------- */
+  /* --- planner: edit the recipient details -------------------------------- */
 
   SHEETS.recipient = function () {
     var t = state.data.train;
@@ -3109,7 +3109,7 @@
 
       '<div class="f"><span class="f-legend">Who may have it?</span>' +
         '<div class="hint">Sarah either way. The second one means it could turn up in the ' +
-        'neighbourhood book one day, with your name on it.</div>' +
+        'community book one day, with your name on it.</div>' +
         '<div class="chips">' +
           '<button class="chip small" data-act="set-recipe-scope" data-scope="private" ' +
             'aria-pressed="' + (state.form.recipeScope !== "book") + '">Just Sarah</button>' +
@@ -3267,8 +3267,8 @@
       'Nothing here is saved anywhere.</div>';
 
     /* A potluck has two sides, not three — whoever is hosting is the one
-       organising, and there is nobody sitting at home being fed. */
-    var roleKeys = isPotluck() ? ["organizer", "neighbor"] : Object.keys(ROLES);
+       running, and there is nobody sitting at home being fed. */
+    var roleKeys = isPotluck() ? ["planner", "sender"] : Object.keys(ROLES);
     body += '<div class="f"><span class="f-legend">Viewing as</span><div class="role-grid">' +
       roleKeys.map(function (k) {
         return '<button class="role-card" data-act="set-role" data-role="' + k + '" aria-pressed="' +
@@ -3554,7 +3554,7 @@
     goto("chat");
   }
 
-  /* --- organizer actions ----------------------------------------------------- */
+  /* --- planner actions ----------------------------------------------------- */
 
   function nudge() {
     var t = state.data.train;
@@ -3624,7 +3624,7 @@
 
   /* --- family actions -------------------------------------------------------- */
 
-  function organizerName() { return state.data.train.organizer || "Rivky Weiss"; }
+  function plannerName() { return state.data.train.planner || "Rivky Weiss"; }
 
   function pause() {
     state.data.train.paused = true;
@@ -3988,7 +3988,7 @@
       /* Straight to the board, which is where a real link lands you. Routing the
          demo through the feed first added a hop nobody has in the product and
          made the whole thing look like it has more layers than it does. */
-      state.role = "neighbor";
+      state.role = "sender";
       goto("board");
       toast("This is what tapping the link in your group chat gets you.");
     },
@@ -4006,7 +4006,7 @@
       state.role = el.getAttribute("data-role");
       /* A potluck has no recipient. If the demo panel is stale, don't strand
          somebody on a view that cannot render. */
-      if (isPotluck() && state.role === "family") state.role = "organizer";
+      if (isPotluck() && state.role === "family") state.role = "planner";
       state.sheet = null;
       render();
       /* The board is a different page for each role — start them at the top of it. */
@@ -4246,7 +4246,7 @@
         "I've given Sarah the recipe. She'll have it forever now, and every time she makes it " +
           "she'll think of you. That's not nothing.",
         loc.slot.recipeScope === "book"
-          ? "And I've kept a copy for the neighbourhood book, with your name on it. Nothing goes " +
+          ? "And I've kept a copy for the community book, with your name on it. Nothing goes " +
             "in without your say-so — that was your say-so."
           : "Just for her, as you said. It goes nowhere else."
       ]);
@@ -4372,7 +4372,7 @@
       goto("chat");
     },
 
-    "message-organizer-pause": function () {
+    "message-planner-pause": function () {
       var t = state.data.train;
       var msg = "It's " + t.recipientContact.split(" &")[0] + " — we've got more than enough food " +
         "just now. Could we quietly slow things down for a few days? I don't want anyone put out.";
@@ -4425,7 +4425,7 @@
         return;
       }
       state.data = seed();
-      state.role = "neighbor";
+      state.role = "sender";
       state.surface = "cover";
       state.setup = { i: 0, answers: {},
         log: [{ me: false, text: ["Hello. What can I do for you?"] }] };
@@ -4680,7 +4680,7 @@
      backend answers — and setup is skipped, because this train already exists. */
   if (sync.enabled) {
     state.surface = "board";
-    state.role = "neighbor";
+    state.role = "sender";
     render();
     sync.load().then(function (data) {
       if (data) {

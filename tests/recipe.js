@@ -33,7 +33,7 @@ const { chromium } = require('playwright-core');
 
   // NEIGHBOR: claim Tuesday, family asks, cook writes it out
   await p.click('#demo-fab'); await p.waitForTimeout(250);
-  await p.click('[data-act="set-role"][data-role="neighbor"]'); await p.waitForTimeout(350);
+  await p.click('[data-act="set-role"][data-role="sender"]'); await p.waitForTimeout(350);
   await board();
   await (await p.$$('#surface-board button:has-text("I\'ll take Tuesday")'))[0].click();
   await p.waitForTimeout(400);
@@ -50,7 +50,7 @@ const { chromium } = require('playwright-core');
   await p.waitForTimeout(600);
 
   await p.click('#demo-fab'); await p.waitForTimeout(250);
-  await p.click('[data-act="set-role"][data-role="neighbor"]'); await p.waitForTimeout(350);
+  await p.click('[data-act="set-role"][data-role="sender"]'); await p.waitForTimeout(350);
   await board();
   const bt = await p.textContent('#surface-board');
   console.log('cook sees the ask:', bt.includes('Sarah asked for this recipe'));

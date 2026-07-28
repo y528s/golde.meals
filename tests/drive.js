@@ -94,10 +94,10 @@ const URL = 'http://localhost:8099/';
 
   // ORGANIZER
   await p.click('#demo-fab'); await p.waitForTimeout(300);
-  await p.click('[data-act="set-role"][data-role="organizer"]'); await p.waitForTimeout(400);
+  await p.click('[data-act="set-role"][data-role="planner"]'); await p.waitForTimeout(400);
   await board(p);
-  await p.screenshot({ path: OUT + '/08-desktop-organizer.png' });
-  console.log('organizer controls:', await p.isVisible('#surface-board [data-act="nudge"]'));
+  await p.screenshot({ path: OUT + '/08-desktop-planner.png' });
+  console.log('planner controls:', await p.isVisible('#surface-board [data-act="nudge"]'));
   await p.click('#surface-board [data-act="add-slot"]'); await p.waitForTimeout(300);
   console.log('slot added:', (await p.$$('#surface-board [data-act="claim"]')).length >= 2);
   await p.click('#surface-board [data-act="edit-day"]'); await p.waitForTimeout(400);

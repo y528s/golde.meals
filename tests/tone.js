@@ -41,7 +41,7 @@ const { chromium } = require('playwright-core');
 
   // wrap-up: no money asked at a shiva
   await p.click('#demo-fab'); await p.waitForTimeout(250);
-  await p.click('[data-act="set-role"][data-role="organizer"]'); await p.waitForTimeout(350);
+  await p.click('[data-act="set-role"][data-role="planner"]'); await p.waitForTimeout(350);
   await board();
   await p.click('#surface-board [data-act="wrap"]'); await p.waitForTimeout(800);
   const wrapped = await p.textContent('#chat-scroll');

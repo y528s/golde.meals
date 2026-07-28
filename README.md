@@ -10,8 +10,8 @@ voice land with real people — not whether messages deliver.
 
 ## The demo moment
 
-A neighbor is in the WhatsApp thread. Golde says the Cohens just had a baby and
-need dinners. The neighbor taps the link, the board opens, they grab Tuesday and
+Somebody is in the WhatsApp thread. Golde says the Cohens just had a baby and
+need dinners. They tap the link, the board opens, they grab Tuesday and
 type what they're bringing, a gentle allergen check fires, they confirm, and
 they land back in the thread with a warm confirmation and a reminder promised.
 
@@ -53,10 +53,10 @@ docs/
 A floating **demo** control (bottom right, clearly labelled as demo-only) swaps
 between:
 
-- **Organizer** — build and adjust the train, set which days need meals and how
+- **Planner** — build and adjust the train, set which days need meals and how
   many slots, edit the recipient's details, see the whole week at a glance, nudge
   the group about open nights, wrap the train.
-- **Neighbor** — see what's open *and what everyone else is bringing*, claim a
+- **Sender** — see what's open *and what everyone else is bringing*, claim a
   night with no login, type a dish, get the gentle checks, swap or cancel without
   guilt, mark a meal delivered.
 - **Family** — share loves, dislikes, allergies, kosher needs and headcount with
@@ -121,10 +121,24 @@ mid-flow. They live outside `docs/` so they aren't served by Pages.
 npm run check          # or: node tools/check-voice.js
 ```
 
-Fails the build if a banned word reaches a user-facing string. It exists
+Fails the build on two things. First, an endearment reaching a user-facing
+string. Second, a word that spells one way in London and another in New York.
+<!-- voice-check: off -->
+Organise/organize, neighbour/neighbor, favourite/favorite.
+<!-- voice-check: on -->
+The link gets
+forwarded from Hendon to Ramat Beit Shemesh to Lakewood, and a spelling is a
+small signal about whose product this is. There is nearly always a plain word
+both sides already agree on, so the rule costs nothing and is only hard to keep
+by memory. Hence: not memory. Documentation that needs to *name* a banned word
+brackets it with `voice-check: off` / `voice-check: on`.
+
+The endearment half exists
+<!-- voice-check: off -->
 because a tester asked "Why is it calling me sweetheart?" and answered her own
 question — "I didn't like it." A pet name from a stranger's software is
 presumption wearing the costume of warmth.
+<!-- voice-check: on -->
 
 Removing the words once was not enough: one came straight back in the Worker,
 written the same day, and the check caught it. Install the hook so it cannot
@@ -134,10 +148,12 @@ happen again:
 ln -sf ../../tools/pre-commit .git/hooks/pre-commit
 ```
 
+<!-- voice-check: off -->
 Banned outright: sweetheart, sweetie, mammele, bubbele, darling, dearie,
 poppet, "my dear". Banned only as a form of address, since they're innocent as
 nouns: honey, hon, dear, love, sugar — "honey cake" and "they love lemon" pass,
 "Thanks, love" does not.
+<!-- voice-check: on -->
 
 **The warmth is in what she notices and what she takes off your plate.** It is
 not in what she calls you. If a line only sounds warm because of the name at

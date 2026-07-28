@@ -27,8 +27,8 @@ const { chromium } = require('playwright-core');
   await p.waitForTimeout(300);
   console.log('  she answers with address:', (await p.textContent('#chat-scroll')).includes(addr));
 
-  // organizer + family always see it (their own house)
-  for (const role of ['organizer','family']) {
+  // planner + family always see it (their own house)
+  for (const role of ['planner','family']) {
     await p.click('#demo-fab'); await p.waitForTimeout(250);
     await p.click(`[data-act="set-role"][data-role="${role}"]`); await p.waitForTimeout(350);
     const onBoard = await p.getAttribute('#surface-board','data-pos') === 'on';
