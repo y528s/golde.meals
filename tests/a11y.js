@@ -68,7 +68,7 @@ const MIN_TEXT = 15;
   await p.click('[data-act="skip-setup"]'); await p.waitForTimeout(500);
   total += report(await audit('BOARD'));
 
-  await (await p.$$('#surface-board button:has-text("I\'ll take")'))[0].click();
+  await (await p.$$('#surface-board button:has-text("I\'ll cook")'))[0].click();
   await p.waitForTimeout(450);
   total += report(await audit('CLAIM SHEET'));
 

@@ -33,7 +33,7 @@ const DATA = {
                                   await B.evaluate(()=>window.goldeSync.version));
 
   const fill = async (p, dish, who, phone) => {
-    await (await p.$$('#surface-board button:has-text("I\'ll take")'))[0].click();
+    await (await p.$$('#surface-board button:has-text("I\'ll cook")'))[0].click();
     await p.waitForTimeout(350);
     await p.fill('#claim-dish', dish); await p.fill('#claim-name', who);
     await p.fill('#claim-contact', phone);

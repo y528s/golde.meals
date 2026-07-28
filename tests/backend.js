@@ -59,7 +59,7 @@ async function seedStore(page) {
   console.log('A sees the real train:', (await A.textContent('#surface-board')).includes('Meals for the Cohens'));
 
   // ---- 2. a claim persists ------------------------------------------------
-  await (await A.$$('#surface-board button:has-text("I\'ll take")'))[0].click();
+  await (await A.$$('#surface-board button:has-text("I\'ll cook")'))[0].click();
   await A.waitForTimeout(400);
   await A.fill('#claim-dish','Lasagna');
   await A.fill('#claim-name','Chani Gold');
@@ -77,7 +77,7 @@ async function seedStore(page) {
   console.log('B sees A\'s claim:', (await B.textContent('#surface-board')).includes('Lasagna'));
 
   // ---- 5. B claims; A picks it up by polling within a few seconds --------
-  await (await B.$$('#surface-board button:has-text("I\'ll take")'))[0].click();
+  await (await B.$$('#surface-board button:has-text("I\'ll cook")'))[0].click();
   await B.waitForTimeout(400);
   await B.fill('#claim-dish','Roast chicken');
   await B.fill('#claim-name','Bracha Levi');

@@ -41,7 +41,7 @@ const EXE = process.env.CHROME || '/opt/pw-browsers/chromium-1194/chrome-linux/c
   if (await p.getAttribute('#surface-board', 'data-pos') !== 'on') {
     await p.click('#surface-chat [data-act="open-board"]'); await p.waitForTimeout(450);
   }
-  await (await p.$$('#surface-board button:has-text("I\'ll take")'))[0].click();
+  await (await p.$$('#surface-board button:has-text("I\'ll cook")'))[0].click();
   await p.waitForTimeout(400);
   await p.fill('#claim-dish', 'Vegetable soup');
   await p.fill('#claim-name', 'Chani Gold');

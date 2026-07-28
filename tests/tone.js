@@ -23,7 +23,7 @@ const { chromium } = require('playwright-core');
   await p.screenshot({ path: __dirname+'/tone-shiva.png' });
 
   // claim during a shiva -> confirmation + reminder register
-  await (await p.$$('#surface-board button:has-text("I\'ll take Tuesday")'))[0].click();
+  await (await p.$$('#surface-board button:has-text("I\'ll cook Tuesday")'))[0].click();
   await p.waitForTimeout(400);
   await p.fill('#claim-dish','Roast chicken and potatoes');
   await p.fill('#claim-name','Chani Gold'); await p.fill('#claim-contact','(555) 014-7788');

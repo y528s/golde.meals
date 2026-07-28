@@ -9,7 +9,7 @@ const { chromium } = require('playwright-core');
   /* skip-setup lands on the board already */
 
   // Tuesday is a dairy night, next to Monday's ziti
-  await (await p.$$('button:has-text("I\'ll take Tuesday")'))[0].click(); await p.waitForTimeout(450);
+  await (await p.$$('button:has-text("I\'ll cook Tuesday")'))[0].click(); await p.waitForTimeout(450);
   const chips = await p.$$eval('[data-act="use-goto"]', els =>
     els.map(e => ({ dish: e.textContent.trim(), faded: e.className.includes('faded'), why: e.title })));
   console.log('TUESDAY (dairy, Monday is ziti):');
@@ -30,7 +30,7 @@ const { chromium } = require('playwright-core');
 
   // Friday: meat night, so the list should re-sort its warnings
   await p.click('#surface-chat [data-act="open-board"]'); await p.waitForTimeout(450);
-  await (await p.$$('button:has-text("I\'ll take Friday")'))[0].click(); await p.waitForTimeout(450);
+  await (await p.$$('button:has-text("I\'ll cook Friday")'))[0].click(); await p.waitForTimeout(450);
   const fri = await p.$$eval('[data-act="use-goto"]', els =>
     els.map(e => (e.className.includes('faded')?'faded ':'clean ') + e.textContent.trim()));
   console.log('\nFRIDAY (meat, Shabbat):'); fri.forEach(f=>console.log('  · '+f));

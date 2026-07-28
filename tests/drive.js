@@ -33,7 +33,7 @@ const URL = 'http://localhost:8099/';
   console.log('friday candle visible:', (await p.textContent('#board-scroll')).includes('7:52'));
 
   // claim Tuesday
-  const btns = await p.$$('button:has-text("I\'ll take Tuesday")');
+  const btns = await p.$$('button:has-text("I\'ll cook Tuesday")');
   console.log('tuesday claim button count:', btns.length);
   await btns[0].click();
   await p.waitForTimeout(400);
@@ -147,7 +147,7 @@ const URL = 'http://localhost:8099/';
 
   // mobile allergen pop mid-flow (for the PR screenshot)
   await board(mp);
-  const t2 = await mp.$$('button:has-text("I\'ll take Friday")');
+  const t2 = await mp.$$('button:has-text("I\'ll cook Friday")');
   if (t2.length) {
     await t2[0].click(); await mp.waitForTimeout(400);
     await mp.fill('#claim-dish', 'Chicken pad thai');

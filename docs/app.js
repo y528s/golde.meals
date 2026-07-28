@@ -1130,7 +1130,10 @@
         h += '<div class="slot-by">On hold — the family has enough this week.</div>';
       } else if (state.role === "sender") {
         h += '<div class="slot-actions"><button class="btn sm" data-act="claim" data-day="' + day.id +
-             '" data-slot="' + slot.id + '">I\'ll take ' + esc(slotWhen(day, slot)) + "</button>" +
+             /* "I'll take Tuesday" beside "I don't cook" opposed nothing — one was
+                about the night, the other about you. A tester asked for the pair
+                to match, and he was right: both are now about cooking. */
+             '" data-slot="' + slot.id + '">I\'ll cook ' + esc(slotWhen(day, slot)) + "</button>" +
              '<button class="btn sm ghost" data-act="claim-nocook" data-day="' + day.id +
              '" data-slot="' + slot.id + '">I don\'t cook</button></div>';
       } else if (state.role === "planner") {
@@ -1258,6 +1261,34 @@
     return '<div class="section-label">' + esc(text) + "</div>";
   }
 
+  /* Three questions a tester asked in one message, all of them fair:
+
+       "a short description on who golde is and what her role is"
+       "What type of information do the different golde boxes provide?"
+       "Who is Rivky? Is that the planner of that specific meal train?"
+
+     None of them were answered anywhere on the page. A person arriving from a
+     link had a name they did not know, a voice they could not place, and two
+     shades of rule with no stated difference. Three sentences fix all three,
+     and they go at the very top because that is where the questions occur.
+
+     Amber does mean something specific, and always has: the candle deadline,
+     a run of the same dish, an allergy. All three are "check this before you
+     cook". Now it says so. */
+  function whatThisIs() {
+    var t = state.data.train;
+    var who = t.planner || "Somebody";
+    return '<div class="panel intro">' +
+      "<p><b>" + esc(who) + "</b> is running this one" +
+      (isPotluck() ? "" : " for " + esc(t.recipientFamily)) + ". " +
+      "Ask her anything about the family or the arrangements.</p>" +
+      '<p><span class="wordmark">golde.</span> is not a person. She keeps the list straight — ' +
+      "who is cooking when — and she will remind you the day before yours.</p>" +
+      '<p class="intro-key"><span class="k-amber"></span> Anything she marks in amber is ' +
+      "worth reading before you cook: a deadline, an allergy, or three of the same dish in a row.</p>" +
+      "</div>";
+  }
+
   function boardSender() {
     var t = state.data.train;
     var h = "";
@@ -1278,21 +1309,32 @@
     } else if (!open.length) {
       lede = "Every night is taken. I'm very pleased with all of you.";
     } else {
+      /* The key under the week already says what + means, and the heading over
+         the nights already says how many need somebody. She speaks here only
+         when she has something neither of those carries — which, at a shiva, is
+         the most important sentence on the page. */
       lede = byTone({
-        bright: "Tap a night with a + on it. That's the whole job.",
-        tender: "Tap a night with a + on it. Plain and warm is exactly right.",
-        quiet:  "There's nothing anybody can say. So we cook. Tap a night with a + on it."
+        bright: "",
+        tender: "Plain and warm is exactly right. Nobody is judging the cooking.",
+        quiet:  "There's nothing anybody can say. So we cook."
       });
     }
+    if (lede) {
+      h += '<div class="golde-note"><span class="gn-mark">golde.</span><span>' + esc(lede) +
+        "</span></div>";
+    }
+
     /* Show, don't tell. The week itself, before any words about the week — and
        a five-word key under it, because a tester spent time working out what
        the marks meant, and that time is the whole cost of the design. */
+    h += label("What this is");
+    h += whatThisIs();
+
     h += label("The week");
     h += weekStrip();
     h += '<div class="wk-key">' +
       "<span><b>+</b> free</span><span><b>\u2022</b> taken</span><span><b>\u2713</b> yours</span>" +
       "</div>";
-    h += '<div class="golde-note"><span class="gn-mark">golde.</span><span>' + esc(lede) + "</span></div>";
 
     if (mine.length) {
       h += label("What you said you'd bring");
@@ -3469,7 +3511,7 @@
     state.form = {};
 
     /* Golde's confirmation, in the thread. */
-    say("you", "I'll take " + dayName(day.iso) + " — " + lowerFirst(dish));
+    say("you", "I'll cook " + dayName(day.iso) + " — " + lowerFirst(dish));
 
     var lines = [];
     lines.push(byTone({

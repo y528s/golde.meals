@@ -11,7 +11,7 @@ const { chromium } = require('playwright-core');
     await p.click(`[data-act="set-role"][data-role="${r}"]`); await p.waitForTimeout(350); await board(); };
 
   await board();
-  await (await p.$$('button:has-text("I\'ll take Tuesday")'))[0].click(); await p.waitForTimeout(400);
+  await (await p.$$('button:has-text("I\'ll cook Tuesday")'))[0].click(); await p.waitForTimeout(400);
   await p.fill('#claim-dish','Mushroom-free vegetable lasagna');
   await p.fill('#claim-name','Chani Gold'); await p.fill('#claim-contact','(555) 014-7788');
   await p.click('[data-act="submit-claim"]'); await p.waitForTimeout(500);

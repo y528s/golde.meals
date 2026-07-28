@@ -870,3 +870,16 @@ button.dc-pref:hover { border-color: currentColor; }
 
 .fact-sub { color: var(--muted); font-size: 15px; }
 .backlink-none { display: inline-block; }
+
+/* The three sentences that answer "who is golde", "who is Rivky", and "why are
+   some of these amber". Reference species — flat, tinted, not a button. */
+.panel.intro p { margin: 0 0 9px; font-size: 15.5px; line-height: 1.55; color: var(--ink-soft); }
+.panel.intro p:last-child { margin-bottom: 0; }
+.panel.intro b { color: var(--ink); font-weight: 700; }
+.panel.intro .wordmark { font-size: 17px; }
+.intro-key { display: flex; gap: 9px; align-items: flex-start; }
+.k-amber {
+  flex: 0 0 auto; width: 3px; align-self: stretch; min-height: 20px;
+  background: var(--amber); border-radius: 2px;
+}
+.nowrap { white-space: nowrap; }

@@ -15,7 +15,7 @@ const { chromium } = require('playwright-core');
   console.log('  she answers with address:', (await p.textContent('#chat-scroll')).includes(addr));
 
   await p.click('#surface-chat [data-act="open-board"]'); await p.waitForTimeout(400);
-  await (await p.$$('button:has-text("I\'ll take Tuesday")'))[0].click(); await p.waitForTimeout(400);
+  await (await p.$$('button:has-text("I\'ll cook Tuesday")'))[0].click(); await p.waitForTimeout(400);
   await p.fill('#claim-dish','Vegetable soup and challah');
   await p.fill('#claim-name','Chani Gold');
   await p.fill('#claim-contact','(555) 014-7788');
