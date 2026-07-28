@@ -201,7 +201,8 @@
   var state = {
     role: "sender",          // planner | sender | family
     surface: "cover",          // cover | setup | chat | board
-    setup: { i: 0, answers: {}, log: [{ me: false, text: ["Hello. What can I do for you?"] }] },
+    setup: { i: 0, answers: {}, log: [{ me: false, text: ["Hello. What can I do for you?",
+                 "A few questions and I'll hand you a link to send round. Two minutes."] }] },
     data: seed(),
     filter: "open",            // open | all — what a somebody actually came for
     details: false,            // the family's full particulars, folded away by default
@@ -2242,7 +2243,15 @@
        does — nobody can ask her to send them meals. */
     { id: "start",
       store: "kind",
-      say: function () { return ["Hello. What can I do for you?"]; },
+      /* A tester: "the interaction style of a person talking to me takes some
+         getting used to." Fair, and the friction is not the voice — it is not
+         knowing what kind of thing this is. An open "what can I do for you?"
+         invites a paragraph; saying it is a few questions and a link says
+         "short and structured" before anybody has to guess. */
+      say: function () {
+        return ["Hello. What can I do for you?",
+                "A few questions and I'll hand you a link to send round. Two minutes."];
+      },
       chips: [
         { label: "I'm setting up meals for somebody", value: "train" },
         { label: "I'm setting up one meal we all bring to", value: "potluck" }
@@ -4316,7 +4325,8 @@
     },
     "restart-setup": function () {
       state.setup = { i: 0, answers: {},
-        log: [{ me: false, text: ["Hello. What can I do for you?"] }] };
+        log: [{ me: false, text: ["Hello. What can I do for you?",
+                 "A few questions and I'll hand you a link to send round. Two minutes."] }] };
       state.surface = "setup";
       state.sheet = null;
       render();
@@ -4805,7 +4815,8 @@
       state.role = "sender";
       state.surface = "cover";
       state.setup = { i: 0, answers: {},
-        log: [{ me: false, text: ["Hello. What can I do for you?"] }] };
+        log: [{ me: false, text: ["Hello. What can I do for you?",
+                 "A few questions and I'll hand you a link to send round. Two minutes."] }] };
       state.sheet = null;
       state.form = {};
       state.you = { name: "" };
