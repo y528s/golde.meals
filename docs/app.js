@@ -34,6 +34,9 @@
 
         adults: 2,
         kids: 3,
+        /* "Food for a 5-year-old is different than a teen." Optional, free text,
+           because ranges and half-birthdays are how people actually answer. */
+        kidsAges: "4, 7, and the new baby",
         householdNote: "the youngest is four days old",
         address: "418 Marion Street, the blue door on the left",
         dropoff: "Ring the bell once. If nobody comes, leave it on the bench — it's shaded.",
@@ -557,15 +560,19 @@
     if (!a && !k) return "a few";
     var bits = [];
     if (a) bits.push(a + " " + plural(a, "adult", "adults"));
-    if (k) bits.push(k + " " + plural(k, "child", "children"));
+    if (k) {
+      bits.push(k + " " + plural(k, "child", "children") +
+        (t.kidsAges ? " (" + t.kidsAges + ")" : ""));
+    }
     return bits.join(" and ");
   }
 
   /* The one-line version for reminders and cards. */
   function headcountShort(t) {
     var a = Number(t.adults) || 0, k = Number(t.kids) || 0;
-    return (a + k) + " to feed (" + a + " " + plural(a, "adult", "adults") +
-           ", " + k + " " + plural(k, "child", "children") + ")";
+    return (a + k) + " to feed — " + a + " " + plural(a, "adult", "adults") + ", " +
+           k + " " + plural(k, "child", "children") +
+           (t.kidsAges ? " (" + t.kidsAges + ")" : "");
   }
 
   function cap(s) { return String(s).charAt(0).toUpperCase() + String(s).slice(1); }
@@ -903,8 +910,14 @@
      names, no windows — seven lines you can read in two seconds. */
   function glanceRow(day) {
     if (!day.needed) {
-      return '<div class="glance off"><span class="g-day">' + esc(dayName(day.iso)) + "</span>" +
-        '<span class="g-state">nothing needed</span></div>';
+      var canAdd = state.role === "organizer" || state.role === "family";
+      if (!canAdd) {
+        return '<div class="glance off"><span class="g-day">' + esc(dayName(day.iso)) + "</span>" +
+          '<span class="g-state">nothing needed</span></div>';
+      }
+      return '<button class="glance off addable" data-act="toggle-needed" data-day="' + day.id + '">' +
+        '<span class="g-day">' + esc(dayName(day.iso)) + "</span>" +
+        '<span class="g-state">+ add this day</span></button>';
     }
     var open = day.slots.filter(function (x) { return !x.filled; });
     var mine = day.slots.some(function (x) { return x.filled && x.mine; });
@@ -918,6 +931,13 @@
       '" data-slot="' + slot.id + '">' +
       '<span class="g-day">' + esc(dayName(day.iso)) + "</span>" +
       '<span class="g-state">open</span></button>';
+  }
+
+  /* A skipped day, and the one tap that brings it back. */
+  function addDayRow(day) {
+    return '<button class="add-day" data-act="toggle-needed" data-day="' + day.id + '">' +
+      '<span class="ad-day">' + esc(dayName(day.iso)) + " " + esc(dateLabel(day.iso)) + "</span>" +
+      '<span class="ad-cta">+ add this day</span></button>';
   }
 
   function compactDay(day) {
@@ -1221,7 +1241,10 @@
         "Everything's still here whenever you want to look."
       : open.length
         ? "You've got " + listify(open.map(function (x) { return dayName(x.iso); })) + " still open. " +
-          "I'll nudge the group whenever you say the word — gently, I promise. I never guilt anybody."
+          "I'll nudge the group whenever you say the word." +
+          (state.data.days.filter(function (dd) { return !dd.needed; }).length
+            ? " Any day you're skipping is still listed — tap it to slot it back in."
+            : "")
         : "Every night is covered. You did that. Now don't go rearranging it just because you can.";
     h += '<div class="golde-note"><span class="gn-mark">golde.</span><span>' + esc(lede) + "</span></div>";
 
@@ -1269,7 +1292,13 @@
     } else {
       state.data.days.forEach(function (day) {
         var hasOpen = day.needed && day.slots.some(function (x) { return !x.filled; });
-        if (state.filter === "open") { if (hasOpen) h += dayCard(day); return; }
+        if (state.filter === "open") {
+          if (hasOpen) h += dayCard(day);
+          /* A day nobody is cooking on still needs to be reachable, or there is
+             no way to slot one back in. */
+          else if (!day.needed) h += addDayRow(day);
+          return;
+        }
         h += (hasOpen || !day.needed) ? dayCard(day) : compactDay(day);
       });
     }
@@ -1436,6 +1465,11 @@
         '<div class="f"><label for="f-kids">Children</label>' +
           '<input type="text" id="f-kids" data-field="kids" value="' + esc(t.kids) + '"></div>' +
       "</div>" +
+      '<div class="f"><label for="f-ages">How old are the children</label>' +
+        '<div class="hint">Optional, but it helps — cooking for a five-year-old is not ' +
+        'cooking for a teenager.</div>' +
+        '<input type="text" id="f-ages" data-field="kidsAges" placeholder="4, 7, 14" value="' +
+        esc(t.kidsAges || "") + '"></div>' +
       '<div class="hint" style="margin:-6px 0 12px">Count everybody, including the ones who only ' +
       'eat the noodles.</div>' +
 
@@ -1599,6 +1633,15 @@
         { label: "4", value: "4" }, { label: "More", value: "6" }
       ] },
 
+    { id: "kidsAges",
+      say: function (a) {
+        return [Number(a.kids) > 0
+          ? "How old are they? Cooking for a five-year-old is not cooking for a teenager."
+          : "Right."];
+      },
+      input: { placeholder: "4, 7, 14", send: "That's them" },
+      skip: { label: "Skip that", value: "" } },
+
     { id: "allergies",
       say: function () {
         return ["Any allergies? The real ones — the kind that send somebody to hospital."];
@@ -1724,6 +1767,7 @@
     if (a.occasion) t.occasion = a.occasion;
     if (a.adults) t.adults = parseInt(a.adults, 10);
     if (a.kids !== undefined && a.kids !== "") t.kids = parseInt(a.kids, 10);
+    t.kidsAges = a.kidsAges || "";
     t.otherAllergies = a.otherAllergies || "";
     if (a.address) t.address = a.address;
     t.allergies = a.allergies ? [a.allergies] : [];
@@ -2154,6 +2198,10 @@
         '<input type="text" id="r-house" data-field="adults" value="' + esc(t.adults) + '"></div>' +
       '<div class="f"><label for="r-kids">How many children</label>' +
         '<input type="text" id="r-kids" data-field="kids" value="' + esc(t.kids) + '"></div>' +
+      '<div class="f"><label for="r-ages">How old are they</label>' +
+        '<div class="hint">Cooking for a five-year-old is not cooking for a teenager.</div>' +
+        '<input type="text" id="r-ages" data-field="kidsAges" placeholder="4, 7, 14" value="' +
+        esc(t.kidsAges || "") + '"></div>' +
       '<div class="f"><label for="r-housenote">Anything about the household</label>' +
         '<input type="text" id="r-housenote" data-field="householdNote" value="' + esc(t.householdNote) + '"></div>' +
       '<div class="f"><label for="r-kosher">Kosher level</label>' +
@@ -3416,6 +3464,7 @@
       if (field === "loves") t.loves = el.value.split("\n").map(trim).filter(Boolean);
       else if (field === "dislikes") t.dislikes = el.value.split(",").map(trim).filter(Boolean);
       else if (field === "adults" || field === "kids") t[field] = parseInt(el.value, 10) || 0;
+      else if (field === "kidsAges") t.kidsAges = el.value.trim();
       else t[field] = el.value;
       if (field === "recipientFamily") t.title = "Meals for " + el.value;
       if (field === "start" || field === "end") regenDays();

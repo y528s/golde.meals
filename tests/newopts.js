@@ -19,6 +19,8 @@ const { chromium } = require('playwright-core');
   await p.click('[data-act="setup-chip"][data-i="1"]'); await p.waitForTimeout(300);  // 2 adults
   console.log('KIDS:  ', await last(), '|', await chips());
   await p.click('[data-act="setup-chip"][data-i="3"]'); await p.waitForTimeout(300);  // 3 kids
+  console.log('\nAGES:', (await last()).replace(/\n/g,' '));
+  await p.fill('#setup-field','5 and 14'); await p.press('#setup-field','Enter'); await p.waitForTimeout(300);
   console.log('\nALLERGIES:', (await last()).replace(/\n/g,' '));
   console.log('  options (None must be first):', await chips());
   await p.click('[data-act="setup-chip"][data-i="1"]'); await p.waitForTimeout(300);  // nuts

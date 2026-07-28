@@ -648,3 +648,17 @@ input, textarea, select { font: inherit; color: inherit; }
 .glance.done .g-day, .glance.off .g-day { color: var(--muted); }
 .glance.mine .g-state { color: var(--green-soft); font-weight: 700; }
 .glance.off { opacity: .6; }
+
+/* a day nobody is cooking on, and the tap that brings it back */
+.add-day {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  border: 1.5px dashed var(--line); background: transparent;
+  border-radius: var(--r-md); padding: 12px 14px; margin-bottom: 9px; text-align: left;
+}
+.add-day:hover { border-color: var(--green-soft); background: var(--card); }
+.ad-day { flex: 1 1 auto; font-family: var(--serif); font-size: 16px; color: var(--muted); }
+.ad-cta { flex: 0 0 auto; font-size: 13px; font-weight: 700; color: var(--green); }
+.glance.addable { cursor: pointer; opacity: 1; }
+.glance.addable .g-day { color: var(--muted); }
+.glance.addable .g-state { color: var(--green); font-weight: 700; }
+.glance.addable:hover { background: var(--green-wash); }

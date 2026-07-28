@@ -24,6 +24,7 @@ CHROME=/path/to/chrome npm test
 | `help` | ask-the-planner and feedback buttons on every board |
 | `drive` | the whole loop, desktop and 390px mobile |
 | `measure2` | board height in screenfuls — catches creeping scroll |
+| `addday` | a tester's exact flow: every-other-day, then slotting a day back in |
 | `backend` / `conflict` | needs `mockapi.js`; run with `--backend` |
 
 `mockapi.js` is a stand-in for the Cloudflare Worker implementing the same

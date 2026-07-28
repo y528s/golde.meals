@@ -23,6 +23,7 @@ const { chromium } = require('playwright-core');
   console.log('7. ' + await last());
   await p.click('[data-act="setup-chip"][data-i="3"]'); await p.waitForTimeout(300);   // 3 kids
   console.log('10. ' + await last());
+  await p.fill('#setup-field','5 and 14'); await p.press('#setup-field','Enter'); await p.waitForTimeout(300);
   await p.click('[data-act="setup-chip"][data-i="0"]'); await p.waitForTimeout(300);   // no allergies
   console.log('9. ' + await last());
   await p.screenshot({ path: __dirname+'/setup-mid.png' });
