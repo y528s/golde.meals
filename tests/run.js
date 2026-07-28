@@ -28,7 +28,7 @@ const DOCS = path.join(DIR, "..", "docs");
 
 /* Suites that run against the plain static app. */
 const STATIC = ["qa", "gate", "recipe", "scope", "goto", "tone", "thanks",
-                "setup", "newopts", "glance", "help", "drive", "measure2", "addday", "keeplink", "calendar", "potluck", "a11y"];
+                "setup", "newopts", "glance", "help", "drive", "measure2", "addday", "keeplink", "calendar", "potluck", "people", "a11y"];
 
 /* Suites that need the stand-in API. */
 const BACKEND = ["backend", "conflict"];

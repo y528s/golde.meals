@@ -863,6 +863,9 @@
       '<h1 class="board-h1">' + esc(t.title) + "</h1>" +
       '<div class="board-dates">' + (isPotluck()
         ? esc(dayName(t.start) + ", " + dateLabel(t.start) + " · " + t.whenTime)
+        : t.openEnded
+        ? "From " + esc(dayName(t.start) + ", " + dateLabel(t.start)) +
+          " · running until you say stop · " + esc(occasionText(t.occasion))
         : esc(dayName(t.start) + ", " + dateLabel(t.start)) + " through " +
           esc(dayName(t.end) + ", " + dateLabel(t.end)) + " · " + esc(occasionText(t.occasion))) +
       "</div></header>";
@@ -1558,6 +1561,13 @@
       '<div class="golde-note tight"><span class="gn-mark">golde.</span><span>Stretch the dates and I\'ll add ' +
         'the new days empty. Shorten them and I\'ll quietly let anyone affected know — nobody gets dropped ' +
         'without hearing it from me first.</span></div>' +
+      (t.openEnded
+        ? '<div class="golde-note tight"><span class="gn-mark">golde.</span><span>' +
+            esc("This one has no end date. I've put up the first fortnight — add another " +
+                "week whenever you need it, and stop whenever they've had enough.") +
+          "</span></div>" +
+          '<button class="btn block ghost" data-act="extend-week">Add another week</button>'
+        : "") +
       calendarSwitch() +
       '<button class="mini-link" data-act="toggle-train">Done</button>' +
       "</div>";
@@ -1684,6 +1694,8 @@
     h += '<div class="f" style="margin:14px 0 0"><label for="new-contact">Add someone</label>' +
       '<div class="hint">A name is enough. I\'ll ask her myself whether she wants to hear from me.</div>' +
       '<input type="text" id="new-contact" placeholder="Faigy Berkowitz" data-newcontact="1"></div>';
+    h += '<button class="btn block ghost" data-act="add-people" style="margin-top:2px">' +
+      "Add a few at once</button>";
 
     if (unsigned.length) {
       h += '<button class="btn block ghost" style="margin-top:4px" data-act="nudge-unsigned">' +
@@ -2050,7 +2062,12 @@
         { label: "A week", value: "7" },
         { label: "Two weeks", value: "14" },
         { label: "A month", value: "30" },
-        { label: "Longer than that", value: "other" }
+        { label: "Longer than that", value: "other" },
+        /* Some of these genuinely have no end date — a family on miluim, a long
+           illness. Guessing an end date and quietly stopping is worse than
+           admitting we don't know, so she puts up a fortnight and leaves the
+           board open with a button to add another week. */
+        { label: "Until I say stop", value: "open" }
       ] },
 
     { id: "lengthOther",
@@ -2388,6 +2405,7 @@
     }
     if (a.occasion) t.occasion = a.occasion;
     if (a.occasionOther) t.occasionText = a.occasionOther.trim();
+    t.openEnded = a.length === "open";
     if (a.adults) t.adults = parseInt(a.adults, 10);
     if (a.teens !== undefined && a.teens !== "") t.teens = parseInt(a.teens, 10);
     if (a.littles !== undefined && a.littles !== "") t.littles = parseInt(a.littles, 10);
@@ -2439,6 +2457,9 @@
                        nine:9, ten:10, eleven:11, twelve:12, a:1, an:1, couple:2, few:3 };
 
   function lengthDays(a) {
+    /* Open-ended starts as a fortnight on the board. The end date is a rolling
+       one the planner extends, not a promise she made up. */
+    if (a.length === "open") return 14;
     if (a.length && a.length !== "other") return parseInt(a.length, 10) || 0;
     if (!a.length) return 0;
     var txt = String(a.lengthOther || "").toLowerCase();
@@ -2449,7 +2470,7 @@
       return bare ? parseInt(bare[1], 10) : 14;
     }
     var n = /^\d+$/.test(m[1]) ? parseInt(m[1], 10) : (NUMBER_WORDS[m[1]] || 1);
-    return Math.min(n * ({ day: 1, week: 7, month: 30, year: 365 }[m[2]]), 365);
+    return Math.min(n * ({ day: 1, week: 7, month: 30, year: 365 }[m[2]]), 180);
   }
 
   /* One sitting, one date, a slot per dish. The train's week of day cards is
@@ -3121,6 +3142,87 @@
         "You don't need a reason to feed somebody. A few dinners, quietly."
       ] }
   };
+
+  /* --- adding several people at once ----------------------------------------
+     Asked for directly: "can we choose to add people from an address book?"
+
+     Where the browser has a contact picker, yes — Chrome on Android exposes
+     navigator.contacts.select(), which shows the phone's own picker and hands
+     back only the entries the person actually ticks. Safari and desktop have no
+     such API, so there is nothing to feature-detect into and pretending
+     otherwise would be a dead button. Everywhere else, paste a list.
+
+     Either way the imported people arrive NOT opted in, and she will not message
+     them. That is not squeamishness: a WhatsApp business number that messages
+     people who never asked for it gets banned, and the whole design rests on
+     signing up being the opt-in. So an import gives the planner a list and a
+     pre-written message to send from their own phone — which is what they were
+     going to do anyway, only now without typing it twenty times.
+     --------------------------------------------------------------------------- */
+
+  function hasContactPicker() {
+    return !!(navigator.contacts && navigator.contacts.select);
+  }
+
+  SHEETS.addpeople = function () {
+    var body = '<div class="golde-note"><span class="gn-mark">golde.</span><span>' +
+      esc("Whoever you put here goes on your list, not on my writing list. I don't message " +
+          "anybody who hasn't signed up themselves — that's the whole reason a message from " +
+          "me isn't spam. I'll write you something to send them instead.") + "</span></div>";
+
+    if (hasContactPicker()) {
+      body += '<button class="btn block" data-act="pick-contacts">Pick from your contacts</button>' +
+        '<div class="hint" style="margin:6px 0 16px">Your phone asks you which ones. ' +
+        "I only ever see the ones you tick.</div>";
+    } else {
+      body += '<div class="golde-note tight"><span class="gn-mark">golde.</span><span>' +
+        esc("This browser won't let a website open your address book — only Chrome on " +
+            "Android does, and it asks you first. Paste them instead; it's quicker than " +
+            "it sounds.") + "</span></div>";
+    }
+
+    body += '<div class="f"><label for="bulk-people">Paste a list</label>' +
+      '<div class="hint">One per line. A name on its own is fine, or a name and a number ' +
+      "separated by a comma.</div>" +
+      '<textarea id="bulk-people" rows="7" placeholder="Faigy Berkowitz\n' +
+        'Chani Gold, +972 50 000 0000\nMrs Klein"></textarea></div>';
+
+    return sheetShell("Add a few at once", "Nobody hears from me until they say I may", body,
+      '<button class="btn block" data-act="save-people">Add them to my list</button>' +
+      '<button class="btn block quiet" data-act="close-sheet">Never mind</button>');
+  };
+
+  /* One line in, one contact out. Split on the last comma so "Klein, Faigy" and
+     "Faigy Klein, +972..." both land the right way round. */
+  function parsePerson(line) {
+    var txt = String(line).trim();
+    if (!txt) return null;
+    var m = /^(.*?)[,;]\s*([+\d][\d\s().-]{5,})$/.exec(txt);
+    var name = (m ? m[1] : txt).trim().replace(/[,;]+$/, "");
+    if (!name) return null;
+    return { name: name, phone: m ? m[2].trim() : "" };
+  }
+
+  function addPeople(list) {
+    var added = 0;
+    list.forEach(function (person) {
+      if (!person) return;
+      var exists = state.data.contacts.some(function (c) {
+        return c.name.toLowerCase() === person.name.toLowerCase();
+      });
+      if (exists) return;
+      state.data.contacts.push({
+        id: "c" + (++state.slotSeq),
+        name: person.name,
+        phone: person.phone || "No number yet",
+        channel: null,
+        /* Not opted in, and not a candidate for a reminder, until they sign up. */
+        optedIn: false
+      });
+      added += 1;
+    });
+    return added;
+  }
 
   /* --- demo controls -------------------------------------------------------- */
 
@@ -3806,7 +3908,9 @@
     var keep = {};
     state.data.days.forEach(function (day) { keep[day.iso] = day; });
     var out = [], cur = new Date(start), guard = 0;
-    while (cur <= end && guard++ < 60) {
+    /* Six months is the ceiling. Long trains are real — a family on miluim can
+       run for months — but an unbounded loop building day cards is not. */
+    while (cur <= end && guard++ < 190) {
       var iso = cur.getFullYear() + "-" + pad(cur.getMonth() + 1) + "-" + pad(cur.getDate());
       if (keep[iso]) out.push(keep[iso]);
       else out.push({
@@ -3923,6 +4027,45 @@
 
     /* Potluck-only. The host can change their mind about who's coming without
        going back through the conversation. */
+    "extend-week": function () {
+      var t = state.data.train;
+      var end = d(t.end);
+      end.setDate(end.getDate() + 7);
+      t.end = end.getFullYear() + "-" + pad(end.getMonth() + 1) + "-" + pad(end.getDate());
+      regenDays();
+      render();
+      toast("Another week on the board. Send it round again when you're ready.");
+    },
+
+    "add-people": function () { openSheet("addpeople", {}); },
+
+    "pick-contacts": function () {
+      if (!hasContactPicker()) return;
+      navigator.contacts.select(["name", "tel"], { multiple: true }).then(function (picked) {
+        var added = addPeople((picked || []).map(function (c) {
+          return { name: (c.name && c.name[0]) || "", phone: (c.tel && c.tel[0]) || "" };
+        }).filter(function (x) { return x.name; }));
+        closeSheet();
+        toast(added
+          ? added + " " + plural(added, "person", "people") + " on your list. " +
+            "Still nobody I'm allowed to write to."
+          : "Nothing new — they were already on the list.");
+      }).catch(function () {
+        toast("Your phone said no, and that's its job.");
+      });
+    },
+
+    "save-people": function () {
+      var box = $("#bulk-people");
+      var lines = (box ? box.value : "").split("\n").map(parsePerson).filter(Boolean);
+      var added = addPeople(lines);
+      closeSheet();
+      toast(added
+        ? added + " " + plural(added, "person", "people") + " added. I'll write you " +
+          "something to send them — I'm not messaging anybody who hasn't asked me to."
+        : "Nothing new there. They're all on the list already.");
+    },
+
     "toggle-jewish": function () {
       var t = state.data.train;
       t.jewish = t.jewish === false;
