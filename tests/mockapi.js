@@ -55,6 +55,13 @@ http.createServer((req, res) => {
     return;
   }
 
+  // mirror the Worker's slug route: /cohens -> /?t=cohens
+  const slug = url.pathname.replace(/^\/+|\/+$/g, '');
+  if (slug && !slug.includes('.') && trains.has(slug)) {
+    res.writeHead(200, {'content-type':'text/html','cache-control':'no-store'});
+    return res.end(fs.readFileSync(path.join(DOCS, 'index.html')));
+  }
+
   // static
   let f = url.pathname === '/' ? '/index.html' : url.pathname;
   const full = path.join(DOCS, f);

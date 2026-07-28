@@ -53,7 +53,10 @@ curl -X POST https://your-worker.workers.dev/api/trains \
   -d '{"id":"cohens","data": { ...the train... }}'
 ```
 
-Then send round `https://your-worker.workers.dev/?t=cohens`.
+Then send round `https://your-worker.workers.dev/cohens` — the bare path works
+as well as `?t=cohens`, because a link somebody can read off a screen and type
+from memory is one they can get back to. Losing the link is the likeliest way
+somebody silently drops out of a train.
 
 Without `?t=`, the app runs as the offline demo with no backend at all — which
 is what keeps the GitHub Pages version working.

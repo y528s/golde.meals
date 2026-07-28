@@ -48,6 +48,26 @@ export default {
       }
     }
 
+    /*
+       A train lives at /cohens as well as /?t=cohens, because the first is
+       something a person can read off a screen, say out loud, or type from
+       memory a week later — and losing the link is the most likely way somebody
+       silently drops out of a meal train.
+
+       The path is rewritten to the query the app already understands rather
+       than teaching the app about routing.
+    */
+    const slug = path.replace(/^\/+|\/+$/g, "");
+    if (slug && !slug.includes(".") && /^[a-z0-9][a-z0-9-]{1,60}$/i.test(slug)) {
+      const known = await env.DB.prepare("SELECT 1 FROM trains WHERE id = ?").bind(slug).first();
+      if (known) {
+        const rewritten = new URL(request.url);
+        rewritten.pathname = "/";
+        rewritten.searchParams.set("t", slug);
+        return env.ASSETS.fetch(new Request(rewritten.toString(), request));
+      }
+    }
+
     /* Everything else is the prototype itself. */
     return env.ASSETS.fetch(request);
   },

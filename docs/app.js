@@ -1218,7 +1218,9 @@
      complain. Both are mailto/wa.me — no backend, works from day one. */
   function helpFooter() {
     var t = state.data.train;
-    return '<div class="help-row">' +
+    return '<button class="help-btn wide" data-act="keep-link" style="margin-top:14px">' +
+        icon("link") + " Keep this link</button>" +
+      '<div class="help-row">' +
       '<button class="help-btn" data-act="message-planner">' + icon("chat") + " Ask " +
         esc(t.planner.split(" ")[0]) + "</button>" +
       '<button class="help-btn" data-act="feedback">' + icon("note") + " Something's wrong</button>" +
@@ -2235,6 +2237,44 @@
       '<button class="btn block" data-act="close-sheet">Save it</button>');
   };
 
+  /* --- getting back here ----------------------------------------------------
+     The link arrives in a group chat and is buried by lunchtime. Somebody who
+     took Thursday needs to find it again on Wednesday night, and "scroll up in
+     WhatsApp" is not an answer. Every route out of here works offline: a text
+     to yourself, an email, the clipboard, or the home screen. */
+
+  function boardLink() {
+    if (window.goldeSync && window.goldeSync.enabled) return location.href;
+    return "https://golde.meals/" + (state.data.train.slug || "the-cohens");
+  }
+
+  SHEETS.keeplink = function () {
+    var t = state.data.train;
+    var mine = myClaims()[0];
+    var body = '<p class="golde-say">This link is the whole thing. Put it somewhere ' +
+      "you'll find it on a Wednesday night.</p>";
+
+    body += '<div class="linkbox">' + esc(boardLink()) + "</div>";
+
+    if (mine) {
+      body += '<div class="golde-note tight"><span class="gn-mark">golde.</span><span>' +
+        esc("You've got " + dayName(mine.day.iso) + ", so it'll be in your reminder as well. " +
+            "This is belt and braces.") + "</span></div>";
+    }
+
+    body += '<p class="lede" style="margin-top:14px">Or add it to your home screen — Share, ' +
+      "then \u201cAdd to Home Screen\u201d. It sits there like an app, and there's nothing " +
+      "to install.</p>";
+
+    var foot =
+      '<button class="btn block" data-act="copy-link">Copy it</button>' +
+      '<button class="btn block ghost" data-act="text-link">Text it to myself</button>' +
+      '<button class="btn block ghost" data-act="email-link">Email it to myself</button>' +
+      '<button class="btn block quiet" data-act="close-sheet">Done</button>';
+
+    return sheetShell("Keep this link", esc(t.title), body, foot);
+  };
+
   /* --- recipes -------------------------------------------------------------- */
 
   /* "Chicken soup with lokshen, and a roast chicken…" → "chicken soup recipe" */
@@ -2525,7 +2565,10 @@
     }
 
     goldeSays(lines, {
-      actions: [{ label: "See the board", act: "open-board" }]
+      actions: [
+        { label: "See the board", act: "open-board" },
+        { label: "Keep this link", act: "keep-link" }
+      ]
     });
 
     persist();
@@ -3133,6 +3176,34 @@
       toast("Opening WhatsApp. It's a 555 number in the demo — it goes nowhere.");
     },
 
+    "keep-link": function () { openSheet("keeplink", {}); },
+
+    "copy-link": function () {
+      var link = boardLink();
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(link).then(
+          function () { toast("Copied. Paste it wherever you'll look for it."); },
+          function () { toast("This browser wouldn't let me copy. Select it and copy by hand."); });
+      } else {
+        toast("Select the link above and copy it by hand — this browser won't let me.");
+      }
+    },
+
+    "text-link": function () {
+      var t = state.data.train;
+      window.location.href = "sms:?&body=" +
+        encodeURIComponent(t.title + " — " + boardLink());
+      toast("Opening your messages with it written out. Send it to yourself.");
+    },
+
+    "email-link": function () {
+      var t = state.data.train;
+      window.location.href = "mailto:?subject=" + encodeURIComponent(t.title) +
+        "&body=" + encodeURIComponent(t.title + "\n\n" + boardLink() +
+          "\n\nEverything's on there — who has which night, and what they're bringing.");
+      toast("Opening your email. Send it to yourself and it's findable forever.");
+    },
+
     "feedback": function () {
       var t = state.data.train;
       var body = "What were you trying to do?\n\n\n" +
@@ -3592,6 +3663,8 @@
             'stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/>',
       note: '<path d="M5 4h14v16l-4-3H5z" fill="none" stroke="currentColor" stroke-width="1.9" ' +
             'stroke-linejoin="round"/>',
+      link: '<path d="M10 13a5 5 0 007.5.5l3-3a5 5 0 00-7-7l-1.7 1.7M14 11a5 5 0 00-7.5-.5l-3 3a5 5 0 007 7L12 19" ' +
+            'fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>',
       share: '<path d="M4 12v7a1 1 0 001 1h14a1 1 0 001-1v-7M12 15V3m0 0L8 7m4-4l4 4" ' +
              'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" ' +
              'stroke-linejoin="round"/>',
