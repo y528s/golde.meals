@@ -75,16 +75,15 @@ export default {
     /*
        A planner's desk. This is the part that has to be gated.
 
-       Four digits is ten thousand values, so an open dashboard here would let
-       anybody walk the whole namespace and read off, for every family in it,
-       that they have just had a baby or are sitting shiva. The trains
-       themselves are protected by the random suffix; the desk has no suffix to
-       hide behind, so it needs a session.
+       The id is random, which makes walking the namespace impractical — but a
+       desk lists everything a planner is running, so guessing one would expose
+       several families at once. That is worth a session on top rather than
+       leaning on the id alone.
 
        No password. The planner puts in their number and gets a link by text —
        which is also exactly how somebody moves from their phone to a laptop.
     */
-    const desk = /^\/meals\/(\d{4,10})\/?$/.exec(path);
+    const desk = /^\/meals\/([a-z0-9]{4,10})\/?$/i.exec(path);
     if (desk) {
       return plannerDesk(request, env, url, desk[1]);
     }

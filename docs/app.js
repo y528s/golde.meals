@@ -32,11 +32,14 @@
         planner: "Rivky Weiss",
         plannerPhone: "15550142288",
 
+        /* Three bands rather than a headcount, because a teenager eats more
+           than an adult and a four-year-old eats almost nothing — a cook can
+           only judge quantities if we say which. Free-text notes for everything
+           a set of numbers cannot hold. */
         adults: 2,
-        kids: 3,
-        /* "Food for a 5-year-old is different than a teen." Optional, free text,
-           because ranges and half-birthdays are how people actually answer. */
-        kidsAges: "4, 7, and the new baby",
+        teens: 0,
+        littles: 2,
+        headNote: "and a brand new baby, who isn't eating yet",
         householdNote: "the youngest is four days old",
         address: "418 Marion Street, the blue door on the left",
         dropoff: "Ring the bell once. If nobody comes, leave it on the bench — it's shaded.",
@@ -243,6 +246,22 @@
   function dateLabel(iso) { var x = d(iso); return MON[x.getMonth()] + " " + x.getDate(); }
   function shortDate(iso) { var x = d(iso); return MON[x.getMonth()].slice(0, 3) + " " + x.getDate(); }
   function isFriday(iso) { return d(iso).getDay() === 5; }
+
+  /* The Jewish calendar, when we have verified data for that week. Every one of
+     these returns null otherwise and the app says nothing, because a wrong
+     parsha reads as an outsider guessing rather than as a bug. */
+  var cal = window.goldeCalendar || {
+    parshaFor: function () { return null; },
+    candleLighting: function () { return null; },
+    noCookingOn: function () { return null; },
+    noteFor: function () { return null; }
+  };
+
+  /* Verified candle-lighting beats the hand-typed field, since it is a fact
+     about the sun rather than somebody's recollection. */
+  function candlesFor(day) {
+    return cal.candleLighting(day.iso) || day.candle || null;
+  }
 
   function windowText(day) {
     return day.from + "–" + day.to + " pm";
@@ -556,23 +575,19 @@
   }
 
   function headcount(t) {
-    var a = Number(t.adults) || 0, k = Number(t.kids) || 0;
-    if (!a && !k) return "a few";
+    var a = Number(t.adults) || 0, y = Number(t.teens) || 0, l = Number(t.littles) || 0;
     var bits = [];
     if (a) bits.push(a + " " + plural(a, "adult", "adults"));
-    if (k) {
-      bits.push(k + " " + plural(k, "child", "children") +
-        (t.kidsAges ? " (" + t.kidsAges + ")" : ""));
-    }
-    return bits.join(" and ");
+    if (y) bits.push(y + " " + plural(y, "teenager", "teenagers"));
+    if (l) bits.push(l + " little " + plural(l, "one", "ones"));
+    if (!bits.length) return "a few";
+    return listify(bits) + (t.headNote ? ", " + t.headNote : "");
   }
 
   /* The one-line version for reminders and cards. */
   function headcountShort(t) {
-    var a = Number(t.adults) || 0, k = Number(t.kids) || 0;
-    return (a + k) + " to feed — " + a + " " + plural(a, "adult", "adults") + ", " +
-           k + " " + plural(k, "child", "children") +
-           (t.kidsAges ? " (" + t.kidsAges + ")" : "");
+    var n = (Number(t.adults) || 0) + (Number(t.teens) || 0) + (Number(t.littles) || 0);
+    return n + " to feed — " + headcount(t);
   }
 
   function cap(s) { return String(s).charAt(0).toUpperCase() + String(s).slice(1); }
@@ -852,8 +867,9 @@
       '<span class="dc-day">' + esc(dayName(day.iso)) + "</span>" +
       '<span class="dc-date">' + esc(dateLabel(day.iso)) + "</span>";
     if (day.needed) {
+      var c = candlesFor(day);
       h += '<span class="dc-window">' + esc(windowText(day)) +
-        (day.candle ? "<br>candles " + esc(day.candle) : "") + "</span>";
+        (c ? "<br>candles " + esc(c) : "") + "</span>";
     }
     h += "</div>";
 
@@ -873,9 +889,18 @@
       h += '<span class="dc-pref ' + day.kosher + '">' + esc(pretty) + "</span>";
     }
 
-    if (day.candle) {
+    var stop = cal.noCookingOn(day.iso);
+    if (stop) {
+      h += '<div class="golde-note tight"><span class="gn-mark">golde.</span><span>' +
+        esc(cal.noteFor(day.iso)) + "</span></div>";
+    }
+
+    var candles = candlesFor(day);
+    if (candles) {
+      var parsha = cal.parshaFor(day.iso);
       h += '<div class="golde-note warn tight"><span class="gn-mark">golde.</span><span>' +
-        "Candles at " + esc(day.candle) + ". Dinner has to be at the door by " + esc(day.to) +
+        (parsha ? "Parshas " + esc(parsha) + ". " : "") +
+        "Candles at " + esc(candles) + ". Dinner has to be at the door by " + esc(day.to) +
         " — earlier if you can.</span></div>";
     }
 
@@ -1464,16 +1489,17 @@
       '<div class="f-row">' +
         '<div class="f"><label for="f-adults">Adults</label>' +
           '<input type="text" id="f-adults" data-field="adults" value="' + esc(t.adults) + '"></div>' +
-        '<div class="f"><label for="f-kids">Children</label>' +
-          '<input type="text" id="f-kids" data-field="kids" value="' + esc(t.kids) + '"></div>' +
+        '<div class="f"><label for="f-teens">Teens</label>' +
+          '<input type="text" id="f-teens" data-field="teens" value="' + esc(t.teens || 0) + '"></div>' +
+        '<div class="f"><label for="f-littles">Little ones</label>' +
+          '<input type="text" id="f-littles" data-field="littles" value="' + esc(t.littles || 0) + '"></div>' +
       "</div>" +
-      '<div class="f"><label for="f-ages">How old are the children</label>' +
-        '<div class="hint">Optional, but it helps — cooking for a five-year-old is not ' +
-        'cooking for a teenager.</div>' +
-        '<input type="text" id="f-ages" data-field="kidsAges" placeholder="4, 7, 14" value="' +
-        esc(t.kidsAges || "") + '"></div>' +
-      '<div class="hint" style="margin:-6px 0 12px">Count everybody, including the ones who only ' +
-      'eat the noodles.</div>' +
+      '<div class="hint" style="margin:-6px 0 10px">Teenagers eat more than adults and little ' +
+      'ones eat almost nothing. It genuinely changes the shop.</div>' +
+      '<div class="f"><label for="f-headnote">Anything else about who is eating</label>' +
+        '<div class="hint">A new baby, someone staying, a grandmother who eats like a bird.</div>' +
+        '<input type="text" id="f-headnote" data-field="headNote" value="' +
+        esc(t.headNote || "") + '"></div>' +
 
       '<div class="f"><label for="f-kosher">Kosher</label>' +
         '<input type="text" id="f-kosher" data-field="kosherLevel" value="' + esc(t.kosherLevel) + '"></div>' +
@@ -1627,22 +1653,28 @@
         { label: "More", value: "6" }
       ] },
 
-    { id: "kids",
-      say: function () { return ["And children?"]; },
+    { id: "teens",
+      say: function () { return ["Any teenagers? They eat like adults and a half."]; },
+      chips: [
+        { label: "None", value: "0" }, { label: "1", value: "1" },
+        { label: "2", value: "2" }, { label: "3", value: "3" }, { label: "More", value: "4" }
+      ] },
+
+    { id: "littles",
+      say: function () { return ["And little ones?"]; },
       chips: [
         { label: "None", value: "0" }, { label: "1", value: "1" },
         { label: "2", value: "2" }, { label: "3", value: "3" },
-        { label: "4", value: "4" }, { label: "More", value: "6" }
+        { label: "4", value: "4" }, { label: "More", value: "5" }
       ] },
 
-    { id: "kidsAges",
-      say: function (a) {
-        return [Number(a.kids) > 0
-          ? "How old are they? Cooking for a five-year-old is not cooking for a teenager."
-          : "Right."];
+    { id: "headNote",
+      say: function () {
+        return ["Anything else about who's eating? A new baby, someone staying, " +
+                "a fussy one — whatever you'd mention on the phone."];
       },
-      input: { placeholder: "4, 7, 14", send: "That's them" },
-      skip: { label: "Skip that", value: "" } },
+      input: { placeholder: "a new baby, and my mother is staying", send: "That's it" },
+      skip: { label: "Nothing else", value: "" } },
 
     { id: "allergies",
       say: function () {
@@ -1768,8 +1800,9 @@
     }
     if (a.occasion) t.occasion = a.occasion;
     if (a.adults) t.adults = parseInt(a.adults, 10);
-    if (a.kids !== undefined && a.kids !== "") t.kids = parseInt(a.kids, 10);
-    t.kidsAges = a.kidsAges || "";
+    if (a.teens !== undefined && a.teens !== "") t.teens = parseInt(a.teens, 10);
+    if (a.littles !== undefined && a.littles !== "") t.littles = parseInt(a.littles, 10);
+    t.headNote = a.headNote || "";
     t.otherAllergies = a.otherAllergies || "";
     if (a.address) t.address = a.address;
     t.allergies = a.allergies ? [a.allergies] : [];
@@ -2196,14 +2229,17 @@
     var t = state.data.train;
     var body = '<p class="golde-say">The more of this I know, the fewer questions land on that family. ' +
       'Fill in what you\'ve got.</p>' +
-      '<div class="f"><label for="r-house">How many adults</label>' +
-        '<input type="text" id="r-house" data-field="adults" value="' + esc(t.adults) + '"></div>' +
-      '<div class="f"><label for="r-kids">How many children</label>' +
-        '<input type="text" id="r-kids" data-field="kids" value="' + esc(t.kids) + '"></div>' +
-      '<div class="f"><label for="r-ages">How old are they</label>' +
-        '<div class="hint">Cooking for a five-year-old is not cooking for a teenager.</div>' +
-        '<input type="text" id="r-ages" data-field="kidsAges" placeholder="4, 7, 14" value="' +
-        esc(t.kidsAges || "") + '"></div>' +
+      '<div class="f-row">' +
+        '<div class="f"><label for="r-house">Adults</label>' +
+          '<input type="text" id="r-house" data-field="adults" value="' + esc(t.adults) + '"></div>' +
+        '<div class="f"><label for="r-teens">Teens</label>' +
+          '<input type="text" id="r-teens" data-field="teens" value="' + esc(t.teens || 0) + '"></div>' +
+        '<div class="f"><label for="r-littles">Littles</label>' +
+          '<input type="text" id="r-littles" data-field="littles" value="' + esc(t.littles || 0) + '"></div>' +
+      "</div>" +
+      '<div class="f"><label for="r-headnote">Anything else about who is eating</label>' +
+        '<input type="text" id="r-headnote" data-field="headNote" value="' +
+        esc(t.headNote || "") + '"></div>' +
       '<div class="f"><label for="r-housenote">Anything about the household</label>' +
         '<input type="text" id="r-housenote" data-field="householdNote" value="' + esc(t.householdNote) + '"></div>' +
       '<div class="f"><label for="r-kosher">Kosher level</label>' +
@@ -3066,7 +3102,7 @@
       var step = setupStep();
       var c = step.chips[parseInt(el.getAttribute("data-i"), 10)];
       if (!c) return;
-      var key = ["occasion", "length", "cadence", "adults", "kids", "allergies"]
+      var key = ["occasion", "length", "cadence", "adults", "teens", "littles", "allergies"]
         .indexOf(step.id) > -1 ? step.id : null;
       setupAdvance(c.label, key, c.value);
     },
@@ -3077,9 +3113,12 @@
 
     "finish-setup": function () { finishSetup(); },
     "skip-setup": function () {
+      /* Straight to the board, which is where a real link lands you. Routing the
+         demo through the feed first added a hop nobody has in the product and
+         made the whole thing look like it has more layers than it does. */
       state.role = "neighbor";
-      goto("chat");
-      toast("Dropping you into the Cohens' week, already under way.");
+      goto("board");
+      toast("This is what tapping the link in your group chat gets you.");
     },
     "restart-setup": function () {
       state.setup = { i: 0, answers: {},
@@ -3534,8 +3573,10 @@
       var t = state.data.train;
       if (field === "loves") t.loves = el.value.split("\n").map(trim).filter(Boolean);
       else if (field === "dislikes") t.dislikes = el.value.split(",").map(trim).filter(Boolean);
-      else if (field === "adults" || field === "kids") t[field] = parseInt(el.value, 10) || 0;
-      else if (field === "kidsAges") t.kidsAges = el.value.trim();
+      else if (field === "adults" || field === "littles" || field === "teens") {
+        t[field] = parseInt(el.value, 10) || 0;
+      }
+      else if (field === "headNote") t.headNote = el.value.trim();
       else t[field] = el.value;
       if (field === "recipientFamily") t.title = "Meals for " + el.value;
       if (field === "start" || field === "end") regenDays();

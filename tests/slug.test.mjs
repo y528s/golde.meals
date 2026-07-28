@@ -16,9 +16,18 @@ is(normaliseName("O'Brien"), 'o-brien', 'handles an apostrophe');
 is(normaliseName(''), 'train', 'falls back rather than producing an empty path');
 is(normaliseName('a'.repeat(50)).length, 24, 'caps the length');
 
-is(plannerKey('+1 (555) 014-3250'), '3250', 'last four of a formatted number');
-is(plannerKey('5550143250', new Set(['3250'])), '43250', 'lengthens to five on a collision');
-is(plannerKey('5550143250', new Set(['3250','43250'])), '143250', 'and again to six');
+is(/^[23456789abcdefghjkmnpqrstuvwxyz]{4}$/.test(plannerKey()), true,
+   'profile id is random, not derived from a phone number');
+const keys = new Set();
+for (let i = 0; i < 400; i++) keys.add(plannerKey());
+is(keys.size > 380, true, `profile ids vary (${keys.size}/400 unique)`);
+is(plannerKey(new Set(['aaaa'])) !== 'aaaa', true, 'avoids one already taken');
+{ /* every 4-char id taken: must lengthen rather than spin forever */
+  const all = new Set();
+  const A = '23456789abcdefghjkmnpqrstuvwxyz';
+  for (const a of A) for (const b of A) for (const c of A) for (const d of A) all.add(a+b+c+d);
+  is(plannerKey(all).length > 4, true, 'lengthens when the whole space is taken');
+}
 
 const s = trainSlug('The Cohen Family', '2026-08-04', 'k7f2');
 is(s, 'cohen-08-26-k7f2', 'full slug');
@@ -27,7 +36,8 @@ is(trainPath('3250', s), '/meals/3250/cohen-08-26-k7f2', 'full path');
 is(parsePath('/meals/3250/cohen-08-26-k7f2'), { planner:'3250', slug:'cohen-08-26-k7f2' }, 'parses');
 is(parsePath('/meals/3250/cohen-08-26-k7f2/'), { planner:'3250', slug:'cohen-08-26-k7f2' }, 'trailing slash');
 is(parsePath('/meals/3250'), null, 'a bare desk is not a train');
-is(parsePath('/meals/abc/cohen'), null, 'planner must be digits');
+is(parsePath('/meals/7k3n/cohen-08-26-9xqm'), { planner:'7k3n', slug:'cohen-08-26-9xqm' }, 'random profile id parses');
+is(parsePath('/meals/a/cohen'), null, 'profile id must be at least four');
 is(parsePath('/../etc/passwd'), null, 'no traversal');
 is(parsePath('/meals/3250/cohen/../../etc'), null, 'no traversal inside the slug');
 
