@@ -186,7 +186,8 @@
 
   var state = {
     role: "neighbor",          // organizer | neighbor | family
-    surface: "chat",           // chat | board
+    surface: "setup",          // setup | chat | board
+    setup: { i: 0, answers: {}, log: [{ me: false, text: ["Hello sweetheart. What can I do for you?"] }] },
     data: seed(),
     filter: "open",            // open | all — what a neighbour actually came for
     details: false,            // the family's full particulars, folded away by default
@@ -1341,6 +1342,11 @@
 
       '<div class="f"><label for="f-kosher">Kosher</label>' +
         '<input type="text" id="f-kosher" data-field="kosherLevel" value="' + esc(t.kosherLevel) + '"></div>' +
+      '<div class="toggle-row"><div class="tr-main">' +
+        '<div class="tr-title">Show me what\'s coming</div>' +
+        '<div class="tr-sub">Some like to know. Some like the surprise. Both are normal.</div></div>' +
+        '<button class="switch" data-act="toggle-surprise" aria-pressed="' + t.showDishes + '" ' +
+        'aria-label="Show what is coming"></button></div>' +
       "</div>";
 
     h += '<div class="panel"><h3>Getting it to your door</h3>';
@@ -1361,12 +1367,6 @@
         '<button class="switch" data-act="toggle-bell" aria-pressed="' + t.ringBell + '" ' +
         'aria-label="Ring the bell"></button></div>' +
 
-      '<div class="toggle-row"><div class="tr-main">' +
-        '<div class="tr-title">Show me what\'s coming</div>' +
-        '<div class="tr-sub">Some people like to know. Some like the surprise. Both are completely normal.</div>' +
-        "</div>" +
-        '<button class="switch" data-act="toggle-surprise" aria-pressed="' + t.showDishes + '" ' +
-        'aria-label="Show what is coming"></button></div>' +
         '<button class="mini-link" data-act="toggle-delivery" style="margin-top:6px">Done</button>' +
       "</div>";
     }
@@ -1420,6 +1420,201 @@
 
     return h;
   }
+
+
+  /* ===========================================================================
+     SETUP — the one conversation that really is WhatsApp
+     ---------------------------------------------------------------------------
+     The organizer messages golde. first, and that is precisely what makes this
+     buildable: a user-initiated message opens a 24-hour window in which a
+     business may reply in free-form, with no pre-approved templates. Everything
+     that ruled out a bot sitting in a group chat does not apply here.
+
+     So this screen is styled as a chat, unlike the rest of the app — because
+     here that is not an imitation, it is the medium.
+     =========================================================================== */
+
+  var SETUP = [
+    { id: "start",
+      say: function () { return ["Hello sweetheart. What can I do for you?"]; },
+      chips: [{ label: "I need a meal train", value: "yes" }] },
+
+    { id: "family",
+      say: function () { return ["Of course. Who are we feeding?"]; },
+      input: { placeholder: "The Cohen family", send: "That's them" } },
+
+    { id: "occasion",
+      say: function (a) { return ["And what's happened for " + a.family + ", if I may ask?"]; },
+      chips: [
+        { label: "A baby", value: "new-baby" },
+        { label: "A shiva", value: "shiva" },
+        { label: "Surgery", value: "recovery" },
+        { label: "Just moved in", value: "moving-in" },
+        { label: "New here", value: "new-to-community" },
+        { label: "No reason", value: "just-because" }
+      ] },
+
+    { id: "length",
+      say: function (a) {
+        var opener = {
+          "new-baby": "Mazal tov! That's the best news I've had all week.",
+          "shiva": "I'm so sorry. May they be comforted.",
+          "recovery": "Refuah shleimah. Poor thing.",
+          "moving-in": "How nice. Boxes everywhere, I imagine.",
+          "new-to-community": "Then let's make sure they feel it.",
+          "just-because": "You don't need a reason. Good for you for noticing."
+        }[a.occasion];
+        return [opener, "How long shall I run it for?"];
+      },
+      chips: [
+        { label: "A week", value: "7" },
+        { label: "Two weeks", value: "14" },
+        { label: "Just a few days", value: "4" }
+      ] },
+
+    { id: "household",
+      say: function () { return ["And how many are we cooking for?"]; },
+      chips: [
+        { label: "3", value: "3" }, { label: "4", value: "4" },
+        { label: "5", value: "5" }, { label: "6", value: "6" },
+        { label: "More than that", value: "8" }
+      ] },
+
+    { id: "allergies",
+      say: function () {
+        return ["Anything they genuinely can't eat? Not fussiness — the real ones."];
+      },
+      chips: [
+        { label: "Nuts", value: "no-nuts" },
+        { label: "Gluten", value: "gluten-free" },
+        { label: "Eggs", value: "no-eggs" },
+        { label: "Sesame", value: "no-sesame" },
+        { label: "Nothing", value: "" }
+      ] },
+
+    { id: "address",
+      say: function () {
+        return ["Do you have their address? If not, later is absolutely fine — " +
+                "I won't hold anything up over it."];
+      },
+      input: { placeholder: "418 Marion Street", send: "That's it" },
+      skip: { label: "I'll add it later", value: "" } },
+
+    { id: "done",
+      say: function (a) {
+        return [
+          "That's everything I need.",
+          "Here's your board. Set the days you'd like covered, and there's a button on it to " +
+            "send the whole thing to your group — you won't be copying and pasting anything.",
+          a.address ? "I've got the address, so nobody will have to ask you for it."
+                    : "No address yet — I'll ask the family myself so it isn't another job for you."
+        ];
+      },
+      card: true }
+  ];
+
+  function setupStep() { return SETUP[state.setup.i] || SETUP[SETUP.length - 1]; }
+
+  function renderSetup() {
+    var st = state.setup;
+    var step = setupStep();
+
+    var h = '<header class="topbar wa">' +
+      '<div><div class="topbar-mark">golde.</div>' +
+      '<div class="topbar-sub">WhatsApp · online</div></div></header>';
+
+    h += '<div class="viewing-as">A real WhatsApp chat — you messaged her first</div>';
+    h += '<div class="scroller wa-bg" id="setup-scroll">';
+
+    st.log.forEach(function (m) {
+      h += '<div class="wa-row ' + (m.me ? "out" : "in") + '"><div class="wa-bubble">' +
+        m.text.map(function (x) { return "<p>" + esc(x) + "</p>"; }).join("") + "</div></div>";
+    });
+
+    if (step.card) {
+      h += '<div class="wa-row in"><div class="wa-bubble">' + renderBoardCard() + "</div></div>";
+    }
+
+    h += "</div>";
+
+    h += '<div class="wa-actions">';
+    if (step.chips) {
+      h += '<div class="chips">' + step.chips.map(function (c, i) {
+        return '<button class="chip small" data-act="setup-chip" data-i="' + i + '">' +
+          esc(c.label) + "</button>";
+      }).join("") + "</div>";
+    }
+    if (step.input) {
+      h += '<form class="ask-form" data-act="setup-send">' +
+        '<input class="ask-field" id="setup-field" autocomplete="off" placeholder="' +
+          esc(step.input.placeholder) + '" aria-label="Your answer">' +
+        '<button class="ask-send" type="submit" aria-label="Send">' + icon("send") + "</button></form>";
+      if (step.skip) {
+        h += '<button class="mini-link" data-act="setup-skip" style="margin-top:8px">' +
+          esc(step.skip.label) + "</button>";
+      }
+    }
+    if (step.card) {
+      h += '<button class="btn block" data-act="finish-setup">Open my board</button>';
+    }
+    /* Demo-only. Nobody should have to set up a train twice to see the rest. */
+    h += '<button class="mini-link" data-act="skip-setup" style="margin-top:10px">' +
+      "Skip this — show me a train already in motion</button>";
+    h += "</div>";
+    return h;
+  }
+
+  function setupAdvance(answerText, key, value) {
+    var st = state.setup;
+    if (answerText) st.log.push({ me: true, text: [answerText] });
+    if (key) st.answers[key] = value;
+    st.i += 1;
+    var step = setupStep();
+    /* Build the train before she shows it, or the card she hands over describes
+       somebody else's week. */
+    if (step.card) applySetup();
+    st.log.push({ me: false, text: step.say(st.answers).filter(Boolean) });
+    render();
+    setTimeout(function () {
+      var el = $("#setup-scroll");
+      if (el) el.scrollTop = el.scrollHeight;
+    }, 40);
+  }
+
+  /* Everything she was told becomes the train. */
+  function applySetup() {
+    var a = state.setup.answers;
+    var t = state.data.train;
+    if (a.family) {
+      t.recipientFamily = a.family;
+      t.title = "Meals for " + a.family;
+    }
+    if (a.occasion) t.occasion = a.occasion;
+    if (a.household) t.household = parseInt(a.household, 10);
+    if (a.address) t.address = a.address;
+    t.allergies = a.allergies ? [a.allergies] : [];
+    if (a.length) {
+      var start = d(t.start);
+      var end = new Date(start);
+      end.setDate(end.getDate() + parseInt(a.length, 10) - 1);
+      t.end = end.getFullYear() + "-" + pad(end.getMonth() + 1) + "-" + pad(end.getDate());
+      regenDays();
+    }
+    /* A brand-new train has nobody on it — that is the honest starting state. */
+    state.data.days.forEach(function (day) {
+      day.slots = [{ id: "n" + (++state.slotSeq), filled: false }];
+      day.needed = true;
+    });
+    state.data.messages = [{
+      id: "s1", from: "golde", dir: "in", time: "10:02", card: "board",
+      text: ["Here's the board for " + t.recipientFamily + ". Nothing on it yet — " +
+             "send it round and let's fill it up."]
+    }];
+    state.role = "organizer";
+    state.filter = "open";
+  }
+
+  function finishSetup() { goto("board"); }
 
   /* ===========================================================================
      8. SHEETS (bottom sheets / modals)
@@ -1957,6 +2152,8 @@
       '<div class="hint">The real golde. sends these on her own schedule. Here you can skip the waiting.</div>' +
       '<button class="btn block ghost" style="margin-bottom:9px" data-act="fastforward">' +
         "Send tomorrow's reminder now</button>" +
+      '<button class="btn block ghost" style="margin-bottom:9px" data-act="restart-setup">' +
+        "Start a train from scratch</button>" +
       '<button class="btn block quiet" data-act="reset">Start the demo over</button></div>';
 
     return sheetShell("Demo controls", "Not part of the product", body,
@@ -2604,6 +2801,35 @@
 
   var ACTIONS = {
     "open-board": function () { goto("board"); },
+
+    "setup-chip": function (el) {
+      var step = setupStep();
+      var c = step.chips[parseInt(el.getAttribute("data-i"), 10)];
+      if (!c) return;
+      var key = step.id === "occasion" ? "occasion"
+              : step.id === "length" ? "length"
+              : step.id === "household" ? "household"
+              : step.id === "allergies" ? "allergies" : null;
+      setupAdvance(c.label, key, c.value);
+    },
+
+    "setup-skip": function () {
+      setupAdvance(setupStep().skip.label, setupStep().id, "");
+    },
+
+    "finish-setup": function () { finishSetup(); },
+    "skip-setup": function () {
+      state.role = "neighbor";
+      goto("chat");
+      toast("Dropping you into the Cohens' week, already under way.");
+    },
+    "restart-setup": function () {
+      state.setup = { i: 0, answers: {},
+        log: [{ me: false, text: ["Hello sweetheart. What can I do for you?"] }] };
+      state.surface = "setup";
+      state.sheet = null;
+      render();
+    },
     "open-chat": function () { goto("chat"); },
     "close-sheet": function () { closeSheet(); },
 
@@ -2899,7 +3125,9 @@
     "reset": function () {
       state.data = seed();
       state.role = "neighbor";
-      state.surface = "chat";
+      state.surface = "setup";
+      state.setup = { i: 0, answers: {},
+        log: [{ me: false, text: ["Hello sweetheart. What can I do for you?"] }] };
       state.sheet = null;
       state.form = {};
       state.you = { name: "" };
@@ -2939,6 +3167,16 @@
   });
 
   document.addEventListener("submit", function (ev) {
+    var setupForm = ev.target.closest ? ev.target.closest('[data-act="setup-send"]') : null;
+    if (setupForm) {
+      ev.preventDefault();
+      var f = $("#setup-field");
+      var v = (f && f.value.trim()) || "";
+      if (!v) return;
+      if (f) f.value = "";
+      setupAdvance(v, setupStep().id, v);
+      return;
+    }
     var form = ev.target.closest ? ev.target.closest('[data-act="send"]') : null;
     if (!form) return;
     ev.preventDefault();
@@ -3014,17 +3252,21 @@
      =========================================================================== */
 
   function render() {
-    var chatEl = $("#surface-chat"), boardEl = $("#surface-board");
+    var setupEl = $("#surface-setup"), chatEl = $("#surface-chat"), boardEl = $("#surface-board");
 
     var chatScroll = keepScroll("#chat-scroll");
     var boardScroll = keepScroll("#board-scroll");
 
+    setupEl.innerHTML = state.surface === "setup" ? renderSetup() : "";
     chatEl.innerHTML = renderChat();
     boardEl.innerHTML = renderBoard();
 
     $("#phone").setAttribute("data-surface", state.surface);
-    chatEl.setAttribute("data-pos", state.surface === "chat" ? "on" : "off-left");
+    setupEl.setAttribute("data-pos", state.surface === "setup" ? "on" : "off-left");
+    chatEl.setAttribute("data-pos",
+      state.surface === "chat" ? "on" : state.surface === "board" ? "off-left" : "off-right");
     boardEl.setAttribute("data-pos", state.surface === "board" ? "on" : "off-right");
+    setupEl.setAttribute("aria-hidden", state.surface !== "setup");
     chatEl.setAttribute("aria-hidden", state.surface !== "chat");
     boardEl.setAttribute("aria-hidden", state.surface !== "board");
 

@@ -1,7 +1,8 @@
 /* ==========================================================================
    golde. meals — prototype styles
-   Brand: cream #FAF7F0, deep green #075E54, live green #25D366. Her own colours —
-   every WhatsApp cue (ticks, bubble green, patterned backdrop) is gone on purpose.
+   Brand: cream #FAF7F0 with a warm forest green. Deliberately NOT #075E54 —
+   that is WhatsApp's exact hex, and this is her own page, not theirs. Every
+   other WhatsApp cue (ticks, bubble green, patterned backdrop) is gone too.
    Warm, rounded, generous. Never corporate.
    ========================================================================== */
 
@@ -9,14 +10,14 @@
   --cream:        #FAF7F0;
   --cream-deep:   #F3EDE1;
   --card:         #FFFFFF;
-  --green:        #075E54;
-  --green-soft:   #0B7A6D;
-  --green-live:   #25D366;
-  --green-wash:   #E7F3EF;
+  --green:        #1F5346;   /* warm forest, not WhatsApp teal */
+  --green-soft:   #2E7561;
+  --green-live:   #3FA37F;
+  --green-wash:   #EBF2ED;
   --ink:          #2B2721;   /* body text */
   --ink-soft:     #4A443C;
   --muted:        #6E665D;   /* AA on cream at small sizes */
-  --line:         #E4DCCC;
+  --line:         #E2D9C7;
   --line-soft:    #EFE8DA;
   --amber:        #B0721E;
   --amber-wash:   #FBF1DF;
@@ -266,15 +267,15 @@ input, textarea, select { font: inherit; color: inherit; }
   padding: 6px 8px 6px 0; display: inline-flex; align-items: center; gap: 5px; margin-left: -4px;
 }
 .board-mark { font-family: var(--serif); font-size: 20px; color: var(--green); margin-left: auto; }
-.board-h1 { font-family: var(--serif); font-size: 25px; line-height: 1.15; margin: 8px 0 2px; color: var(--ink); }
+.board-h1 { font-family: var(--serif); font-size: 22px; line-height: 1.15; margin: 6px 0 2px; color: var(--ink); }
 .board-dates { font-size: 13.5px; color: var(--muted); }
-.board-body { padding: 14px 14px 120px; background: var(--cream); }
+.board-body { padding: 12px 13px 110px; background: var(--cream); }
 
 .golde-note {
   display: flex; gap: 9px; align-items: flex-start;
   background: var(--green-wash); border-radius: var(--r-md);
-  padding: 12px 14px; font-size: 14.5px; line-height: 1.5; color: var(--ink-soft);
-  margin-bottom: 14px;
+  padding: 10px 13px; font-size: 14.5px; line-height: 1.5; color: var(--ink-soft);
+  margin-bottom: 10px;
 }
 .golde-note .gn-mark {
   font-family: var(--serif); color: var(--green); font-size: 15px; flex: 0 0 auto; line-height: 1.4;
@@ -290,8 +291,8 @@ input, textarea, select { font: inherit; color: inherit; }
 .section-label:first-child { margin-top: 4px; }
 
 .daycard {
-  background: var(--card); border: 1px solid var(--line-soft); border-radius: var(--r-lg);
-  padding: 14px 15px; margin-bottom: 12px; box-shadow: var(--shadow-card);
+  background: var(--card); border: 1px solid var(--line-soft); border-radius: var(--r-md);
+  padding: 12px 14px; margin-bottom: 9px; box-shadow: var(--shadow-card);
 }
 .daycard.open { border-style: dashed; border-color: var(--line); background: #FFFDF8; }
 .daycard.off { background: transparent; box-shadow: none; border-style: dashed; }
@@ -308,10 +309,10 @@ input, textarea, select { font: inherit; color: inherit; }
 .dc-pref.pareve { color: #5A5340; background: #F2EEE0; }
 .dc-pref.dairy { color: #1F5E86; background: #E6F0F7; }
 
-.slot { display: flex; gap: 11px; align-items: flex-start; margin-top: 12px; }
+.slot { display: flex; gap: 10px; align-items: flex-start; margin-top: 9px; }
 .slot + .slot { border-top: 1px dashed var(--line-soft); padding-top: 12px; }
 .slot-icon {
-  flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%;
+  flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%;
   display: grid; place-items: center; font-size: 16px;
   background: var(--cream-deep);
 }
@@ -336,8 +337,8 @@ input, textarea, select { font: inherit; color: inherit; }
 
 /* facts / preference panels */
 .panel {
-  background: var(--card); border: 1px solid var(--line-soft); border-radius: var(--r-lg);
-  padding: 16px; margin-bottom: 14px; box-shadow: var(--shadow-card);
+  background: var(--card); border: 1px solid var(--line-soft); border-radius: var(--r-md);
+  padding: 14px; margin-bottom: 10px; box-shadow: var(--shadow-card);
 }
 .panel h3 { font-family: var(--serif); font-size: 18px; margin: 0 0 4px; font-weight: 400; }
 .panel .lede { font-size: 14px; color: var(--muted); margin: 0 0 14px; line-height: 1.5; }
@@ -374,16 +375,16 @@ input, textarea, select { font: inherit; color: inherit; }
 }
 .contact-acts .mini-link { font-size: 12.5px; white-space: nowrap; }
 
-.stats { display: flex; gap: 8px; margin-bottom: 14px; }
+.stats { display: flex; gap: 7px; margin-bottom: 11px; }
 .stat {
   flex: 1 1 0; background: var(--card); border: 1px solid var(--line-soft);
-  border-radius: var(--r-md); padding: 11px 12px; text-align: center; box-shadow: var(--shadow-card);
+  border-radius: var(--r-md); padding: 8px 10px; text-align: center; box-shadow: var(--shadow-card);
 }
-.stat b { display: block; font-family: var(--serif); font-size: 24px; color: var(--green); line-height: 1.1; }
+.stat b { display: block; font-family: var(--serif); font-size: 20px; color: var(--green); line-height: 1.1; }
 .stat span { font-size: 12px; color: var(--muted); }
 
 /* form controls */
-.f { margin-bottom: 14px; }
+.f { margin-bottom: 12px; }
 .f > label, .f-legend {
   display: block; font-size: 13.5px; font-weight: 700; color: var(--ink-soft); margin-bottom: 6px;
 }
@@ -581,3 +582,26 @@ input, textarea, select { font: inherit; color: inherit; }
 }
 .cd-by { flex: 0 0 auto; color: var(--muted); font-size: 12.5px; }
 .compact-day .mini-link { flex: 0 0 auto; font-size: 12.5px; }
+
+/* ---------- Setup: this one really is WhatsApp ------------------------------
+   The organizer messaged her first, which opens the free-form reply window.
+   Styled as a chat because here that is the medium, not an imitation.
+   -------------------------------------------------------------------------- */
+.topbar.wa { background: #123A31; }
+.wa-bg { background: #EFE7D8; padding: 16px 12px 8px; }
+.wa-row { display: flex; margin-bottom: 9px; }
+.wa-row.out { justify-content: flex-end; }
+.wa-bubble {
+  max-width: 84%; padding: 10px 13px; border-radius: 16px;
+  background: #fff; box-shadow: 0 1px 1px rgba(43,39,33,.10);
+  font-size: 15px; line-height: 1.5;
+}
+.wa-row.in .wa-bubble  { border-top-left-radius: 5px; }
+.wa-row.out .wa-bubble { background: var(--green-wash); border-top-right-radius: 5px; }
+.wa-bubble p { margin: 0 0 7px; }
+.wa-bubble p:last-child { margin-bottom: 0; }
+.wa-actions {
+  flex: 0 0 auto; padding: 12px 14px calc(16px + env(safe-area-inset-bottom));
+  background: var(--cream); border-top: 1px solid var(--line);
+}
+.wa-actions .chips { justify-content: flex-start; }
