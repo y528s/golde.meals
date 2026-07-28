@@ -8,13 +8,14 @@ const { chromium } = require('playwright-core');
   /* skip-setup lands on the board already */
   const h = async () => p.evaluate(() => { const s=document.getElementById('board-scroll');
     return (s.scrollHeight/s.clientHeight).toFixed(1); });
-  console.log('neighbour, still open :', await h(), 'screenfuls');
-  console.log('  chip label:', (await p.textContent('[data-filter="all"]')).trim());
-  await p.click('[data-filter="all"]'); await p.waitForTimeout(400);
-  console.log('neighbour, whole week :', await h(), 'screenfuls');
+  /* One page now, so there is one number to care about: what a neighbour scrolls
+     through before they have done the thing they came to do. */
+  console.log('neighbour, one page   :', await h(), 'screenfuls');
   await p.screenshot({ path: __dirname+'/whole-week.png' });
+  await p.click('[data-act="toggle-settled"]'); await p.waitForTimeout(400);
+  console.log('  + the sorted nights :', await h(), 'screenfuls');
   await p.click('[data-act="toggle-details"]'); await p.waitForTimeout(400);
-  console.log('  + details expanded  :', await h(), 'screenfuls');
+  console.log('  + every particular  :', await h(), 'screenfuls');
   for (const r of ['organizer','family']) {
     await p.click('#demo-fab'); await p.waitForTimeout(250);
     await p.click(`[data-act="set-role"][data-role="${r}"]`); await p.waitForTimeout(400);

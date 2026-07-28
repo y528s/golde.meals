@@ -787,3 +787,39 @@ button, a, input, select, textarea, [role="button"] { min-height: 44px; }
 /* The kosher wish is a button now, not a label. */
 button.dc-pref { border: 1px dashed transparent; }
 button.dc-pref:hover { border-color: currentColor; }
+
+/* ==========================================================================
+   The week, as a picture
+   --------------------------------------------------------------------------
+   "Show don't tell... they're busy and probably only paying 50% attention."
+   Three states, readable at a glance and without reading: a + you can tap, a
+   dot somebody else has, a tick that is yours. Scrolls sideways for long runs.
+   ========================================================================== */
+.weekstrip {
+  display: flex; gap: 7px; overflow-x: auto; padding: 2px 2px 12px;
+  scrollbar-width: none; -webkit-overflow-scrolling: touch;
+}
+.weekstrip::-webkit-scrollbar { display: none; }
+.ws-day {
+  flex: 0 0 auto; width: 56px; min-height: 76px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  border-radius: 14px; border: 1.5px solid var(--line); background: var(--card);
+  padding: 8px 4px; text-align: center;
+}
+.ws-dow { font-size: 12.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.ws-num { font-family: var(--serif); font-size: 21px; line-height: 1.1; color: var(--ink); }
+.ws-mark { font-size: 17px; line-height: 1; font-weight: 700; color: var(--muted); }
+
+.ws-day.open {
+  border-color: var(--green); border-style: dashed; background: var(--green-wash);
+}
+.ws-day.open .ws-num, .ws-day.open .ws-mark { color: var(--green); }
+.ws-day.open:hover { background: #DFEBE3; }
+.ws-day.done { background: var(--cream-deep); border-color: transparent; }
+.ws-day.done .ws-num { color: var(--muted); }
+.ws-day.mine { background: var(--green); border-color: var(--green); }
+.ws-day.mine .ws-dow, .ws-day.mine .ws-num, .ws-day.mine .ws-mark { color: #fff; }
+.ws-day.off { opacity: .4; border-style: dotted; }
+
+.fact-sub { color: var(--muted); font-size: 15px; }
+.backlink-none { display: inline-block; }

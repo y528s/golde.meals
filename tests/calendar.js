@@ -30,7 +30,8 @@ const FIXTURE = {
   await p.goto('http://localhost:8099/', { waitUntil: 'networkidle' });
   await p.click('[data-act="skip-setup"]'); await p.waitForTimeout(400);
   await board();
-  await p.click('[data-filter="all"]'); await p.waitForTimeout(400);
+  /* Every night that wants something is on the page; the rest is one tap. */
+  await p.click('[data-act="toggle-settled"]').catch(() => {}); await p.waitForTimeout(400);
   const bare = await p.textContent('#board-scroll');
   console.log('WITHOUT DATA');
   console.log('  invents no parsha:', !/Parshas/i.test(bare));
@@ -41,9 +42,9 @@ const FIXTURE = {
   await p.evaluate(f => {
     window.goldeCalendar.load(f, '2026-08-01', '2026-08-31');
   }, FIXTURE);
-  await p.evaluate(() => document.querySelector('[data-filter="open"]').click());
+  await p.evaluate(() => document.querySelector('[data-act="toggle-settled"]').click());
   await p.waitForTimeout(300);
-  await p.evaluate(() => document.querySelector('[data-filter="all"]').click());
+  await p.evaluate(() => document.querySelector('[data-act="toggle-settled"]').click());
   await p.waitForTimeout(400);
   const withData = await p.textContent('#board-scroll');
   console.log('\nWITH VERIFIED DATA');

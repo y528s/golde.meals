@@ -207,6 +207,7 @@
     details: false,            // the family's full particulars, folded away by default
     trainOpen: false,          // dates and occasion — reference, not a daily action
     contactsOpen: false,       // show the people who are already sorted
+    settledOpen: false,        // nights that want nothing from you, folded away
     deliveryOpen: false,       // the family's drop-off details
     sheet: null,               // { kind, ... }
     form: {},
@@ -857,7 +858,9 @@
 
     h += '<header class="board-top">' +
       '<div class="row1">' +
-        '<button class="backlink" data-act="open-chat">' + icon("back") + " Back to the chat</button>" +
+        (state.role === "organizer"
+          ? '<button class="backlink" data-act="open-chat">' + icon("back") + " Back to the chat</button>"
+          : '<span class="backlink-none" aria-hidden="true"></span>') +
         '<span class="board-mark">golde.</span>' +
       "</div>" +
       '<h1 class="board-h1">' + esc(t.title) + "</h1>" +
@@ -1192,7 +1195,50 @@
     return h;
   }
 
-  /* --- neighbor board ------------------------------------------------------ */
+  /* --- neighbor board --------------------------------------------------------
+     Rebuilt after a third tester said the same thing in her own words:
+
+       "over complicated. There are a lot of words... show don't tell. All the
+        information is in one page... different tabs can over complicate. You
+        want as simple as humanly possible. They're busy and probably only
+        paying 50% attention as they sign up."
+
+     She is describing exactly the person this is for. So: no tabs on this view,
+     one line at the top instead of a paragraph, and the first thing on screen is
+     a picture of the week rather than a sentence about it. Filled, open, yours —
+     three states you can read without reading.
+
+     One page, top to bottom: the week, the nights that want something from you,
+     then everything already sorted, folded small. Nothing to navigate.
+     -------------------------------------------------------------------------- */
+
+  var DOW_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  function dayShort(iso) {
+    var i = d(iso).getDay();
+    return i === 6 && isJewish() ? "Shab" : DOW_SHORT[i];
+  }
+
+  /* The week, as a picture. Each block is either a tap that takes a night or a
+     statement that one is handled — no legend needed to tell them apart. */
+  function weekStrip() {
+    var h = '<div class="weekstrip">';
+    state.data.days.forEach(function (day) {
+      var free = day.needed && day.slots.filter(function (x) { return !x.filled; })[0];
+      var mine = day.slots.some(function (x) { return x.filled && x.mine; });
+      var cls = !day.needed ? "off" : mine ? "mine" : free ? "open" : "done";
+      var inner = '<span class="ws-dow">' + esc(dayShort(day.iso)) + "</span>" +
+        '<span class="ws-num">' + d(day.iso).getDate() + "</span>" +
+        '<span class="ws-mark" aria-hidden="true">' +
+          (mine ? "✓" : free ? "+" : day.needed ? "•" : "–") + "</span>";
+      var label = dayName(day.iso) + " " + dateLabel(day.iso) + ", " +
+        (!day.needed ? "nothing needed" : mine ? "yours" : free ? "open" : "taken");
+      h += free
+        ? '<button class="ws-day ' + cls + '" data-act="claim" data-day="' + day.id +
+            '" data-slot="' + free.id + '" aria-label="' + esc(label) + '">' + inner + "</button>"
+        : '<div class="ws-day ' + cls + '" aria-label="' + esc(label) + '">' + inner + "</div>";
+    });
+    return h + "</div>";
+  }
 
   function boardNeighbor() {
     var t = state.data.train;
@@ -1200,6 +1246,8 @@
     var open = openDays();
     var mine = myClaims();
 
+    /* One line, not a paragraph. She still changes register for a shiva, because
+       that is the one thing worth spending words on. */
     var lede;
     if (t.wrapped) {
       lede = byTone({
@@ -1208,51 +1256,32 @@
         quiet:  "The shiva is over. They'll be alright, slowly."
       });
     } else if (t.paused) {
-      lede = "The Cohens have enough for now. Don't cook — I'll wave you back in when they're ready.";
-    } else if (!filledSlots().length) {
-      lede = "Nothing here yet. Let's fill it up so the Cohens don't have to think about dinner.";
+      lede = "They have enough for now. Don't cook — I'll wave you back in.";
     } else if (!open.length) {
-      lede = "Every night is spoken for. I'm very pleased with all of you.";
+      lede = "Every night is taken. I'm very pleased with all of you.";
     } else {
-      var days = listify(open.map(function (x) { return dayName(x.iso); }));
-      var still = days + " still " + plural(open.length, "has", "have") + " nobody. ";
       lede = byTone({
-        bright: still + "Take whichever fits your week.",
-        tender: still + "Take whichever fits your week. Plain and warm is exactly right.",
-        quiet:  "There's nothing anybody can say. So we cook. " + still +
-                "Nothing has to be special this week."
+        bright: "Tap a night with a + on it. That's the whole job.",
+        tender: "Tap a night with a + on it. Plain and warm is exactly right.",
+        quiet:  "There's nothing anybody can say. So we cook. Tap a night with a + on it."
       });
     }
     h += '<div class="golde-note"><span class="gn-mark">golde.</span><span>' + esc(lede) + "</span></div>";
 
+    /* Show, don't tell. The week itself, before any words about the week. */
+    h += weekStrip();
 
     if (mine.length) {
-      h += '<div class="panel"><h3>Your night' + (mine.length > 1 ? "s" : "") + "</h3>" +
-        '<p class="lede">I\'ll remind you the day before, so you can put it out of your head until then.</p>';
+      h += '<div class="panel"><h3>Your night' + (mine.length > 1 ? "s" : "") + "</h3>";
       mine.forEach(function (x) {
         h += '<div class="fact"><dt>' + esc(dayName(x.day.iso)) + "</dt><dd>" + esc(x.slot.dish) +
-             "<br><span style=\"color:var(--muted);font-size:13px\">by " + esc(x.day.to) + " pm" +
+             '<br><span class="fact-sub">by ' + esc(x.day.to) + " pm" +
              (x.day.candle ? ", before candles at " + esc(x.day.candle) : "") + "</span></dd></div>";
       });
       h += '<div class="fact"><dt>Where</dt><dd>' + esc(t.address) +
-        '<div style="font-size:13px;color:var(--muted);margin-top:2px">' + esc(t.dropoff) +
-        "</div></dd></div>";
+        '<div class="fact-sub">' + esc(t.dropoff) + "</div></dd></div>";
       h += "</div>";
     }
-
-    var openCount = open.length;
-    var covered = state.data.days.filter(function (d) {
-      return d.needed && !d.slots.some(function (x) { return !x.filled; });
-    }).length;
-    h += '<div class="chips seg">' +
-      '<button class="chip small" data-act="set-filter" data-filter="open" aria-pressed="' +
-        (state.filter === "open") + '">Open (' + openCount + ")</button>" +
-      '<button class="chip small" data-act="set-filter" data-filter="all" aria-pressed="' +
-        (state.filter === "all") + '">Everything</button>' +
-      '<button class="chip small" data-act="set-filter" data-filter="glance" aria-pressed="' +
-        (state.filter === "glance") + '">At a glance</button>' +
-      "</div>";
-    void covered;
 
     var vn = boardVarietyNote();
     if (vn && !t.wrapped) {
@@ -1261,25 +1290,25 @@
 
     h += recipientPanel(false);
 
-    if (state.filter === "glance") {
-      h += '<div class="glance-list">';
-      state.data.days.forEach(function (day) { h += glanceRow(day); });
-      h += "</div>";
-    } else {
-      state.data.days.forEach(function (day) {
-        var hasOpen = day.needed && day.slots.some(function (x) { return !x.filled; });
-        var mine = day.slots.some(function (x) { return x.filled && x.mine; });
-        if (state.filter === "open") {
-          if (hasOpen || mine) h += dayCard(day);
-          return;
-        }
-        h += (hasOpen || mine || !day.needed) ? dayCard(day) : compactDay(day);
-      });
-    }
-    if (state.filter === "open" && !open.length) {
-      h += '<div class="golde-note"><span class="gn-mark">golde.</span><span>' +
-        esc("Every night is taken. Have a look at the whole week if you'd like to see what's coming.") +
-        "</span></div>";
+    /* No tabs. The nights that want something from you, in full; then the ones
+       already sorted, one line each, folded away until somebody asks. */
+    var needing = state.data.days.filter(function (day) {
+      return (day.needed && day.slots.some(function (x) { return !x.filled; })) ||
+             day.slots.some(function (x) { return x.filled && x.mine; });
+    });
+    var settled = state.data.days.filter(function (day) {
+      return day.needed && needing.indexOf(day) === -1;
+    });
+
+    needing.forEach(function (day) { h += dayCard(day); });
+
+    if (settled.length) {
+      h += '<button class="mini-link" data-act="toggle-settled">' +
+        (state.settledOpen
+          ? "Hide the " + settled.length + " already sorted"
+          : settled.length + " " + plural(settled.length, "night", "nights") +
+            " already sorted — see what's coming") + "</button>";
+      if (state.settledOpen) settled.forEach(function (day) { h += compactDay(day); });
     }
 
     if (!t.wrapped && !t.paused) {
@@ -1506,8 +1535,14 @@
 
   function helpFooter() {
     var t = state.data.train;
-    return '<button class="help-btn wide" data-act="keep-link" style="margin-top:14px">' +
-        icon("link") + " Keep this link</button>" +
+    /* Golde's own thread used to be a tab at the top of the board, which made the
+       whole thing look like it had two halves. It is a place you go with a
+       question, so it lives down here with the other two places you go with a
+       question, and the board is just the board. */
+    return '<div class="help-row" style="margin-top:14px">' +
+      '<button class="help-btn" data-act="open-chat">' + icon("chat") + " Ask golde.</button>" +
+      '<button class="help-btn" data-act="keep-link">' + icon("link") + " Keep this link</button>" +
+      "</div>" +
       '<div class="help-row">' +
       '<button class="help-btn" data-act="message-planner">' + icon("chat") + " Ask " +
         esc(t.planner.split(" ")[0]) + "</button>" +
@@ -4065,6 +4100,8 @@
           "something to send them — I'm not messaging anybody who hasn't asked me to."
         : "Nothing new there. They're all on the list already.");
     },
+
+    "toggle-settled": function () { state.settledOpen = !state.settledOpen; render(); },
 
     "toggle-jewish": function () {
       var t = state.data.train;
