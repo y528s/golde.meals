@@ -32,8 +32,9 @@
         planner: "Rivky Weiss",
         plannerPhone: "15550142288",
 
-        household: 5,
-        householdNote: "two little ones, and a brand new baby girl",
+        adults: 2,
+        kids: 3,
+        householdNote: "the youngest is four days old",
         address: "418 Marion Street, the blue door on the left",
         dropoff: "Ring the bell once. If nobody comes, leave it on the bench — it's shaded.",
         ringBell: true,
@@ -43,6 +44,10 @@
         passover: false,
 
         allergies: ["no-nuts"],
+        /* Free text, because a fixed list of five cannot cover dairy, soy,
+           strawberries, legumes or whatever this family actually has. Each word
+           typed here is matched against dishes exactly like the preset tags. */
+        otherAllergies: "",
         allergyNote: "The nut allergy is the real thing, not a preference. Please read labels.",
         dislikes: ["mushrooms"],
         loves: [
@@ -445,6 +450,21 @@
     if (!dish || !dish.trim()) return concerns;
 
     /* --- allergens --------------------------------------------------------- */
+
+    /* Whatever the family typed themselves, matched word for word. */
+    (t.otherAllergies || "").split(/[,;]/).forEach(function (raw) {
+      var word = raw.trim().toLowerCase();
+      if (word.length < 3) return;
+      var stem = word.replace(/(ies|es|s)$/, "");
+      var safe = stem.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      if (!new RegExp("\\b" + safe, "i").test(dish)) return;
+      concerns.push({
+        kind: "allergy",
+        text: cap(t.recipientFamily) + " can't have " + word + ", and that looks like it has some in. " +
+              "Want to rethink it, or is yours definitely safe?"
+      });
+    });
+
     t.allergies.forEach(function (tag) {
       var def = ALLERGY_TAGS[tag];
       if (!def) return;
@@ -519,6 +539,35 @@
     arr.forEach(function (x) { if (!seen[x]) { seen[x] = 1; out.push(x); } });
     return out;
   }
+  /* Two adults and three children is a different shop from five adults, and a
+     cook can only judge quantities if we say which. */
+  function allergySummary(t) {
+    var named = (t.allergies || []).map(function (a) {
+      return ALLERGY_TAGS[a] ? ALLERGY_TAGS[a].label : a;
+    });
+    (t.otherAllergies || "").split(/[,;]/).forEach(function (w) {
+      w = w.trim();
+      if (w) named.push("no " + w);
+    });
+    return named.length ? named.join(", ") : "no allergies";
+  }
+
+  function headcount(t) {
+    var a = Number(t.adults) || 0, k = Number(t.kids) || 0;
+    if (!a && !k) return "a few";
+    var bits = [];
+    if (a) bits.push(a + " " + plural(a, "adult", "adults"));
+    if (k) bits.push(k + " " + plural(k, "child", "children"));
+    return bits.join(" and ");
+  }
+
+  /* The one-line version for reminders and cards. */
+  function headcountShort(t) {
+    var a = Number(t.adults) || 0, k = Number(t.kids) || 0;
+    return (a + k) + " to feed (" + a + " " + plural(a, "adult", "adults") +
+           ", " + k + " " + plural(k, "child", "children") + ")";
+  }
+
   function cap(s) { return String(s).charAt(0).toUpperCase() + String(s).slice(1); }
 
   /* Lowercase the first letter so a dish reads naturally mid-sentence — but leave
@@ -1089,11 +1138,7 @@
 
     /* The three things that decide what you cook. Everything else waits. */
     h += '<p class="lede" style="margin-bottom:10px">' +
-      esc(t.household + " to cook for · " +
-          (t.allergies.length
-            ? t.allergies.map(function (a) {
-                return ALLERGY_TAGS[a] ? ALLERGY_TAGS[a].label : a; }).join(", ")
-            : "no allergies") +
+      esc(headcount(t) + " · " + allergySummary(t) +
           " · kosher, meat and dairy separate") + "</p>";
 
     if (editable) {
@@ -1108,7 +1153,7 @@
     }
 
     h += '<dl style="margin:0">';
-    h += fact("Cooking for", t.household + " — " + t.householdNote + ". Leftovers are a blessing.");
+    h += fact("Cooking for", headcount(t) + " — " + t.householdNote + ". Leftovers are a blessing.");
     h += fact("Allergies", t.allergies.map(function (a) {
       return '<span class="tag allergy">' + esc(ALLERGY_TAGS[a] ? ALLERGY_TAGS[a].label : a) + "</span>";
     }).join("") + '<div style="font-size:13px;color:var(--muted);margin-top:2px">' + esc(t.allergyNote) +
@@ -1213,13 +1258,21 @@
       '<button class="chip small" data-act="set-filter" data-filter="open" aria-pressed="' +
         (state.filter === "open") + '">Needs attention (' + open.length + ")</button>" +
       '<button class="chip small" data-act="set-filter" data-filter="all" aria-pressed="' +
-        (state.filter === "all") + '">The whole week</button>' +
+        (state.filter === "all") + '">Everything</button>' +
+      '<button class="chip small" data-act="set-filter" data-filter="glance" aria-pressed="' +
+        (state.filter === "glance") + '">At a glance</button>' +
       "</div>";
-    state.data.days.forEach(function (day) {
-      var hasOpen = day.needed && day.slots.some(function (x) { return !x.filled; });
-      if (state.filter === "open") { if (hasOpen) h += dayCard(day); return; }
-      h += (hasOpen || !day.needed) ? dayCard(day) : compactDay(day);
-    });
+    if (state.filter === "glance") {
+      h += '<div class="glance-list">';
+      state.data.days.forEach(function (day) { h += glanceRow(day); });
+      h += "</div>";
+    } else {
+      state.data.days.forEach(function (day) {
+        var hasOpen = day.needed && day.slots.some(function (x) { return !x.filled; });
+        if (state.filter === "open") { if (hasOpen) h += dayCard(day); return; }
+        h += (hasOpen || !day.needed) ? dayCard(day) : compactDay(day);
+      });
+    }
 
     h += contactsPanel();
 
@@ -1364,15 +1417,27 @@
       '<div class="f"><span class="f-legend">Real allergies</span>' +
         '<div class="hint">These are the serious ones. I\'ll stop anybody who types something risky, before ' +
         'they\'ve cooked it — not at your door.</div>' +
-        '<div class="chips">' + Object.keys(ALLERGY_TAGS).map(function (k) {
-          var on = t.allergies.indexOf(k) > -1;
-          return '<button class="chip small" data-act="toggle-allergy" data-tag="' + k + '" aria-pressed="' +
-            on + '">' + esc(ALLERGY_TAGS[k].label) + "</button>";
-        }).join("") + "</div></div>" +
+        '<div class="chips">' +
+          '<button class="chip small" data-act="clear-allergies" aria-pressed="' +
+            (!t.allergies.length && !(t.otherAllergies || "").trim()) + '">None</button>' +
+          Object.keys(ALLERGY_TAGS).map(function (k) {
+            var on = t.allergies.indexOf(k) > -1;
+            return '<button class="chip small" data-act="toggle-allergy" data-tag="' + k +
+              '" aria-pressed="' + on + '">' + esc(ALLERGY_TAGS[k].label) + "</button>";
+          }).join("") + "</div>" +
+        '<div class="hint" style="margin-top:9px">Anything else — dairy, soy, strawberries. ' +
+        'I check these against dishes exactly like the buttons above.</div>' +
+        '<input type="text" data-field="otherAllergies" placeholder="dairy, strawberries" ' +
+        'value="' + esc(t.otherAllergies || "") + '"></div>' +
 
-      '<div class="f"><label for="f-household">How many are you cooking for</label>' +
-        '<div class="hint">Count everybody, including the ones who only eat the noodles.</div>' +
-        '<input type="text" id="f-household" data-field="household" value="' + esc(t.household) + '"></div>' +
+      '<div class="f-row">' +
+        '<div class="f"><label for="f-adults">Adults</label>' +
+          '<input type="text" id="f-adults" data-field="adults" value="' + esc(t.adults) + '"></div>' +
+        '<div class="f"><label for="f-kids">Children</label>' +
+          '<input type="text" id="f-kids" data-field="kids" value="' + esc(t.kids) + '"></div>' +
+      "</div>" +
+      '<div class="hint" style="margin:-6px 0 12px">Count everybody, including the ones who only ' +
+      'eat the noodles.</div>' +
 
       '<div class="f"><label for="f-kosher">Kosher</label>' +
         '<input type="text" id="f-kosher" data-field="kosherLevel" value="' + esc(t.kosherLevel) + '"></div>' +
@@ -1507,25 +1572,52 @@
         { label: "Just a few days", value: "4" }
       ] },
 
-    { id: "household",
-      say: function () { return ["And how many are we cooking for?"]; },
+    { id: "cadence",
+      say: function () {
+        return ["Every day, or every other day? Plenty of people find every other " +
+                "is enough — there are usually leftovers."];
+      },
       chips: [
+        { label: "Every other day", value: "alternate" },
+        { label: "Every day", value: "daily" },
+        { label: "I'll pick the days myself", value: "manual" }
+      ] },
+
+    { id: "adults",
+      say: function () { return ["How many adults are we cooking for?"]; },
+      chips: [
+        { label: "1", value: "1" }, { label: "2", value: "2" },
         { label: "3", value: "3" }, { label: "4", value: "4" },
-        { label: "5", value: "5" }, { label: "6", value: "6" },
-        { label: "More than that", value: "8" }
+        { label: "More", value: "6" }
+      ] },
+
+    { id: "kids",
+      say: function () { return ["And children?"]; },
+      chips: [
+        { label: "None", value: "0" }, { label: "1", value: "1" },
+        { label: "2", value: "2" }, { label: "3", value: "3" },
+        { label: "4", value: "4" }, { label: "More", value: "6" }
       ] },
 
     { id: "allergies",
       say: function () {
-        return ["Anything they genuinely can't eat? Not fussiness — the real ones."];
+        return ["Any allergies? The real ones — the kind that send somebody to hospital."];
       },
       chips: [
+        { label: "None", value: "" },
         { label: "Nuts", value: "no-nuts" },
         { label: "Gluten", value: "gluten-free" },
         { label: "Eggs", value: "no-eggs" },
-        { label: "Sesame", value: "no-sesame" },
-        { label: "Nothing", value: "" }
+        { label: "Sesame", value: "no-sesame" }
       ] },
+
+    { id: "otherAllergies",
+      say: function () {
+        return ["Anything else I should watch for? Dairy, soy, strawberries — whatever " +
+                "it is, type it and I'll flag it when somebody types a dish."];
+      },
+      input: { placeholder: "dairy, strawberries", send: "That's it" },
+      skip: { label: "Nothing else", value: "" } },
 
     { id: "address",
       say: function () {
@@ -1541,8 +1633,13 @@
           "That's everything I need.",
           "Here's your board. Set the days you'd like covered, and there's a button on it to " +
             "send the whole thing to your group — you won't be copying and pasting anything.",
-          a.address ? "I've got the address, so nobody will have to ask you for it."
-                    : "No address yet — I'll ask the family myself so it isn't another job for you."
+          a.cadence === "alternate"
+          ? "I've set it to every other day. Change any of them on the board."
+          : a.cadence === "manual"
+            ? "All the days are on there — turn off the ones they don't need."
+            : "Every day is on there. Turn off any they don't need.",
+        a.address ? "I've got the address, so nobody will have to ask you for it."
+                  : "No address yet — I'll ask the family myself so it isn't another job for you."
         ];
       },
       card: true }
@@ -1625,7 +1722,9 @@
       t.title = "Meals for " + a.family;
     }
     if (a.occasion) t.occasion = a.occasion;
-    if (a.household) t.household = parseInt(a.household, 10);
+    if (a.adults) t.adults = parseInt(a.adults, 10);
+    if (a.kids !== undefined && a.kids !== "") t.kids = parseInt(a.kids, 10);
+    t.otherAllergies = a.otherAllergies || "";
     if (a.address) t.address = a.address;
     t.allergies = a.allergies ? [a.allergies] : [];
     if (a.length) {
@@ -1636,9 +1735,17 @@
       regenDays();
     }
     /* A brand-new train has nobody on it — that is the honest starting state. */
-    state.data.days.forEach(function (day) {
+    state.data.days.forEach(function (day, i) {
       day.slots = [{ id: "n" + (++state.slotSeq), filled: false }];
-      day.needed = true;
+      /* Every other day is what most people actually run: there are leftovers,
+         and asking twenty neighbours for seven nights is a harder ask than four. */
+      if (a.cadence === "alternate") {
+        day.needed = i % 2 === 0;
+        if (!day.needed) day.offReason = "Leftovers from yesterday. Nobody needs to cook.";
+      } else {
+        day.needed = true;
+        delete day.offReason;
+      }
     });
     state.data.messages = [{
       id: "s1", from: "golde", dir: "in", time: "10:02", card: "board",
@@ -1727,7 +1834,7 @@
 
     if (day) {
       body += '<div class="golde-note"><span class="gn-mark">golde.</span><span>' +
-        esc("Cooking for " + t.household + " — " + t.householdNote + ". " +
+        esc("Cooking for " + headcount(t) + " — " + t.householdNote + ". " +
             (day.candle
               ? "At the door by " + day.to + ", before candles."
               : "Anywhere between " + day.from + " and " + day.to + ".")) +
@@ -1856,7 +1963,7 @@
     var desc = [
       "Dinner for " + t.recipientFamily + ".",
       "You said: " + slot.dish,
-      "Cooking for " + t.household + " — " + t.householdNote + ".",
+      "Cooking for " + headcount(t) + " — " + t.householdNote + ".",
       t.allergies.length ? "Allergies: " + t.allergies.map(function (a) {
         return ALLERGY_TAGS[a] ? ALLERGY_TAGS[a].label : a; }).join(", ") + "." : "",
       t.dislikes.length ? "Skip: " + t.dislikes.join(", ") + "." : "",
@@ -2043,8 +2150,10 @@
     var t = state.data.train;
     var body = '<p class="golde-say">The more of this I know, the fewer questions land on that family. ' +
       'Fill in what you\'ve got.</p>' +
-      '<div class="f"><label for="r-house">How many to cook for</label>' +
-        '<input type="text" id="r-house" data-field="household" value="' + esc(t.household) + '"></div>' +
+      '<div class="f"><label for="r-house">How many adults</label>' +
+        '<input type="text" id="r-house" data-field="adults" value="' + esc(t.adults) + '"></div>' +
+      '<div class="f"><label for="r-kids">How many children</label>' +
+        '<input type="text" id="r-kids" data-field="kids" value="' + esc(t.kids) + '"></div>' +
       '<div class="f"><label for="r-housenote">Anything about the household</label>' +
         '<input type="text" id="r-housenote" data-field="householdNote" value="' + esc(t.householdNote) + '"></div>' +
       '<div class="f"><label for="r-kosher">Kosher level</label>' +
@@ -2053,11 +2162,18 @@
         '<input type="text" id="r-hech" data-field="hechshers" value="' + esc(t.hechshers) + '"></div>' +
       '<div class="f"><span class="f-legend">Allergies</span>' +
         '<div class="hint">These are the ones I\'ll actually stop somebody over.</div>' +
-        '<div class="chips">' + Object.keys(ALLERGY_TAGS).map(function (k) {
-          var on = t.allergies.indexOf(k) > -1;
-          return '<button class="chip small" data-act="toggle-allergy" data-tag="' + k + '" aria-pressed="' +
-            on + '">' + esc(ALLERGY_TAGS[k].label) + "</button>";
-        }).join("") + "</div></div>" +
+        '<div class="chips">' +
+          '<button class="chip small" data-act="clear-allergies" aria-pressed="' +
+            (!t.allergies.length && !(t.otherAllergies || "").trim()) + '">None</button>' +
+          Object.keys(ALLERGY_TAGS).map(function (k) {
+            var on = t.allergies.indexOf(k) > -1;
+            return '<button class="chip small" data-act="toggle-allergy" data-tag="' + k +
+              '" aria-pressed="' + on + '">' + esc(ALLERGY_TAGS[k].label) + "</button>";
+          }).join("") + "</div>" +
+        '<div class="hint" style="margin-top:9px">Anything else — dairy, soy, strawberries. ' +
+        'I check these against dishes exactly like the buttons above.</div>' +
+        '<input type="text" data-field="otherAllergies" placeholder="dairy, strawberries" ' +
+        'value="' + esc(t.otherAllergies || "") + '"></div>' +
       '<div class="f"><label for="r-dislikes">Things to skip</label>' +
         '<input type="text" id="r-dislikes" data-field="dislikes" value="' + esc(t.dislikes.join(", ")) + '"></div>' +
       '<div class="f"><label for="r-loves">Things they love</label>' +
@@ -2593,7 +2709,7 @@
       (day.candle
         ? "At the door by " + day.to + " — candles are at " + day.candle + ", so please don't cut it fine."
         : "Anytime between " + day.from + " and " + day.to + ".") +
-      " " + t.household + " to feed, " + t.householdNote + ". " +
+      " " + headcountShort(t) + ", " + t.householdNote + ". " +
       (t.allergies.indexOf("no-nuts") > -1 ? "No nuts. " : "") +
       t.address + "."
     );
@@ -2748,7 +2864,7 @@
       return [train.kosherLevel + ". " + train.hechshers];
     }
     if (/how many|headcount|family of|portions|how much/.test(t)) {
-      return ["Cooking for " + train.household + " — " + train.householdNote + ". " +
+      return ["Cooking for " + headcount(train) + " — " + train.householdNote + ". " +
         "Leftovers are a blessing."];
     }
     if (/where|address|drop|door|deliver to/.test(t)) {
@@ -2859,10 +2975,8 @@
       var step = setupStep();
       var c = step.chips[parseInt(el.getAttribute("data-i"), 10)];
       if (!c) return;
-      var key = step.id === "occasion" ? "occasion"
-              : step.id === "length" ? "length"
-              : step.id === "household" ? "household"
-              : step.id === "allergies" ? "allergies" : null;
+      var key = ["occasion", "length", "cadence", "adults", "kids", "allergies"]
+        .indexOf(step.id) > -1 ? step.id : null;
       setupAdvance(c.label, key, c.value);
     },
 
@@ -3102,6 +3216,12 @@
     },
     "wrap": function () { wrapTrain(); },
 
+    "clear-allergies": function () {
+      state.data.train.allergies = [];
+      state.data.train.otherAllergies = "";
+      changed();
+    },
+
     "toggle-allergy": function (el) {
       var tag = el.getAttribute("data-tag");
       var list = state.data.train.allergies;
@@ -3295,7 +3415,7 @@
       var t = state.data.train;
       if (field === "loves") t.loves = el.value.split("\n").map(trim).filter(Boolean);
       else if (field === "dislikes") t.dislikes = el.value.split(",").map(trim).filter(Boolean);
-      else if (field === "household") t.household = el.value.trim() || t.household;
+      else if (field === "adults" || field === "kids") t[field] = parseInt(el.value, 10) || 0;
       else t[field] = el.value;
       if (field === "recipientFamily") t.title = "Meals for " + el.value;
       if (field === "start" || field === "end") regenDays();
