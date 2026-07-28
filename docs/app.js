@@ -167,7 +167,7 @@
         {
           id: "m5", from: "golde", dir: "in", time: "10:14",
           text: [
-            "Monday's yours, Shira. Thank you, sweetheart. I'll remind you Sunday night so you don't have to keep it in your head."
+            "Monday's yours, Shira. Thank you. I'll remind you Sunday night so you don't have to keep it in your head."
           ],
           reaction: "❤️"
         },
@@ -189,7 +189,7 @@
   var state = {
     role: "neighbor",          // organizer | neighbor | family
     surface: "setup",          // setup | chat | board
-    setup: { i: 0, answers: {}, log: [{ me: false, text: ["Hello sweetheart. What can I do for you?"] }] },
+    setup: { i: 0, answers: {}, log: [{ me: false, text: ["Hello. What can I do for you?"] }] },
     data: seed(),
     filter: "open",            // open | all — what a neighbour actually came for
     details: false,            // the family's full particulars, folded away by default
@@ -536,14 +536,14 @@
     if (!c.length) return null;
     var first = c[0];
     var short = {
-      allergy: "Careful, sweetheart — that one may have nuts in it. I'll ask you about it in a second.",
+      allergy: "Careful — that one may have nuts in it. I'll ask you about it in a second.",
       kosher: "Mm. That might not match what they're hoping for that night. We'll talk.",
       variety: "That's the second one like it this week. Not a problem, just noticing.",
       dislike: "Small thing about one of the ingredients — I'll mention it before you confirm."
     };
     if (first.kind === "allergy") {
       var tag = ALLERGY_TAGS[state.data.train.allergies[0]];
-      short.allergy = "Careful, sweetheart — that sounds like it could have " +
+      short.allergy = "Careful — that sounds like it could have " +
         (tag ? tag.friendly : "an allergen") + " in it. I'll ask you properly in a second.";
     }
     return { kind: first.kind, text: short[first.kind] || short.variety };
@@ -849,6 +849,28 @@
   }
 
   /* A night nobody needs to act on. One line is enough; the card was 145px. */
+  /* Asked for by a real user: "a really quick view of the week where it just
+     shows filled and unfilled spots and literally nothing else". No dishes, no
+     names, no windows — seven lines you can read in two seconds. */
+  function glanceRow(day) {
+    if (!day.needed) {
+      return '<div class="glance off"><span class="g-day">' + esc(dayName(day.iso)) + "</span>" +
+        '<span class="g-state">nothing needed</span></div>';
+    }
+    var open = day.slots.filter(function (x) { return !x.filled; });
+    var mine = day.slots.some(function (x) { return x.filled && x.mine; });
+    if (!open.length) {
+      return '<div class="glance done' + (mine ? " mine" : "") + '">' +
+        '<span class="g-day">' + esc(dayName(day.iso)) + "</span>" +
+        '<span class="g-state">' + (mine ? "yours" : "covered") + "</span></div>";
+    }
+    var slot = open[0];
+    return '<button class="glance open" data-act="claim" data-day="' + day.id +
+      '" data-slot="' + slot.id + '">' +
+      '<span class="g-day">' + esc(dayName(day.iso)) + "</span>" +
+      '<span class="g-state">open</span></button>';
+  }
+
   function compactDay(day) {
     var slots = day.slots.filter(function (s) { return s.filled; });
     var t = state.data.train;
@@ -1014,9 +1036,11 @@
     }).length;
     h += '<div class="chips seg">' +
       '<button class="chip small" data-act="set-filter" data-filter="open" aria-pressed="' +
-        (state.filter === "open") + '">Still open (' + openCount + ")</button>" +
+        (state.filter === "open") + '">Open (' + openCount + ")</button>" +
       '<button class="chip small" data-act="set-filter" data-filter="all" aria-pressed="' +
-        (state.filter === "all") + '">The whole week</button>' +
+        (state.filter === "all") + '">Everything</button>' +
+      '<button class="chip small" data-act="set-filter" data-filter="glance" aria-pressed="' +
+        (state.filter === "glance") + '">At a glance</button>' +
       "</div>";
     void covered;
 
@@ -1027,16 +1051,21 @@
 
     h += recipientPanel(false);
 
-    state.data.days.forEach(function (day) {
-      var hasOpen = day.needed && day.slots.some(function (x) { return !x.filled; });
-      var mine = day.slots.some(function (x) { return x.filled && x.mine; });
-      if (state.filter === "open") {
-        if (hasOpen || mine) h += dayCard(day);
-        return;
-      }
-      /* A night that's settled needs one line, not a card. */
-      h += (hasOpen || mine || !day.needed) ? dayCard(day) : compactDay(day);
-    });
+    if (state.filter === "glance") {
+      h += '<div class="glance-list">';
+      state.data.days.forEach(function (day) { h += glanceRow(day); });
+      h += "</div>";
+    } else {
+      state.data.days.forEach(function (day) {
+        var hasOpen = day.needed && day.slots.some(function (x) { return !x.filled; });
+        var mine = day.slots.some(function (x) { return x.filled && x.mine; });
+        if (state.filter === "open") {
+          if (hasOpen || mine) h += dayCard(day);
+          return;
+        }
+        h += (hasOpen || mine || !day.needed) ? dayCard(day) : compactDay(day);
+      });
+    }
     if (state.filter === "open" && !open.length) {
       h += '<div class="golde-note"><span class="gn-mark">golde.</span><span>' +
         esc("Every night is taken. Have a look at the whole week if you'd like to see what's coming.") +
@@ -1316,7 +1345,7 @@
     var h = "";
 
     h += '<div class="golde-note"><span class="gn-mark">golde.</span><span>' +
-      esc("Sarah, sweetheart. You don't owe anybody a form. Fill in what helps, skip what doesn't, and " +
+      esc("You don't owe anybody a form. Fill in what helps, skip what doesn't, and " +
           "change your mind as many times as you like — I'll keep everyone updated so you never have to " +
           "explain yourself twice.") + "</span></div>";
 
@@ -1442,7 +1471,7 @@
 
   var SETUP = [
     { id: "start",
-      say: function () { return ["Hello sweetheart. What can I do for you?"]; },
+      say: function () { return ["Hello. What can I do for you?"]; },
       chips: [{ label: "I need a meal train", value: "yes" }] },
 
     { id: "family",
@@ -1911,7 +1940,7 @@
     var foot = '<button class="btn block ghost" data-act="close-concerns">Let me rethink it</button>' +
       '<button class="btn block" data-act="force-claim">It\'s fine — sign me up</button>';
 
-    return sheetShell("One second, mammele", "", body, foot);
+    return sheetShell("One moment", "", body, foot);
   };
 
   /* --- cancel --------------------------------------------------------------- */
@@ -1919,7 +1948,7 @@
   SHEETS.cancel = function (s) {
     var loc = locateSlot(s.slotId);
     var dayLabel = loc ? dayName(loc.day.iso) : "your night";
-    var body = '<p class="golde-say">Life happens, sweetheart. Don\'t give it another thought.</p>' +
+    var body = '<p class="golde-say">Life happens. Don\'t give it another thought.</p>' +
       '<p class="golde-say">I\'ll open ' + esc(dayLabel) + ' back up and quietly let the others know. ' +
       'Nobody will ask you why, and if anybody does, send them to me.</p>' +
       '<div class="golde-note tight"><span class="gn-mark">golde.</span><span>' +
@@ -2223,7 +2252,7 @@
       return;
     }
     if (!name) {
-      toast("Just your name, sweetheart, so they know who to thank.");
+      toast("Just your name, so they know who to thank.");
       var nf = document.querySelector("#claim-name");
       if (nf) nf.focus();
       return;
@@ -2232,7 +2261,7 @@
     if (chDef.needs && !(f.contact || "").trim()) {
       toast(chDef.needs === "email"
         ? "An email address and I'll do the rest."
-        : "A number, sweetheart, or I've no way to reach you.");
+        : "A number, or I've no way to reach you.");
       var cf = document.querySelector("#claim-contact");
       if (cf) cf.focus();
       return;
@@ -2298,8 +2327,8 @@
 
     var lines = [];
     lines.push(byTone({
-      bright: dayName(day.iso) + "'s yours. Thank you, sweetheart.",
-      tender: dayName(day.iso) + "'s yours. Thank you, sweetheart.",
+      bright: dayName(day.iso) + "'s yours. Thank you.",
+      tender: dayName(day.iso) + "'s yours. Thank you.",
       quiet:  dayName(day.iso) + "'s yours. Thank you."
     }));
     if (isQuiet()) {
@@ -2408,7 +2437,7 @@
     loc.slot.delivered = true;
     state.sheet = null;
     goldeSays([
-      "That's one more night that family didn't have to think about. Thank you, sweetheart.",
+      "That's one more night that family didn't have to think about. Thank you.",
       "Go sit down."
     ]);
     persist();
@@ -2652,7 +2681,7 @@
         ? "There's still room for one more if you want it."
         : dayName(day.iso) + " is wide open. It's yours if you want it.");
     } else if (filled.length) {
-      lines.push(dayName(day.iso) + " is covered, sweetheart.");
+      lines.push(dayName(day.iso) + " is covered.");
     }
     lines.push(day.candle
       ? "It's the Shabbos one — at the door by " + day.to + ", before candles at " + day.candle + "."
@@ -2725,7 +2754,7 @@
     if (/where|address|drop|door|deliver to/.test(t)) {
       return canSeeAddress()
         ? [train.address + ". " + train.dropoff]
-        : ["Take a night first, sweetheart, and the address is yours straight away. " +
+        : ["Take a night first and the address is yours straight away. " +
            "I don't hand out where a new mother lives to anyone who happens to have the link."];
     }
     if (/when|what time|deadline|candle|shabb/.test(t)) {
@@ -2735,7 +2764,7 @@
              : "") + " I'll remind you either way."];
     }
     if (/^(hi|hello|hey|good morning|good evening|shalom)\b/.test(t)) {
-      return ["Hello sweetheart. " + (open.length
+      return ["Hello. " + (open.length
         ? listify(open.map(function (x) { return dayName(x.iso); })) + " " +
           plural(open.length, "is", "are") + " still open, if you're asking."
         : "Everything's covered this week, so this is purely social.")];
@@ -2744,7 +2773,7 @@
       return ["Open the board, pick a night, tell me what you're bringing. That's the whole thing."];
     }
 
-    return ["I'm not sure I follow, sweetheart — I'm better with the practical questions. " +
+    return ["I'm not sure I follow — I'm better with the practical questions. " +
       "Ask me who has which night, what's still open, what they eat, or when to be there."];
   }
 
@@ -2849,7 +2878,7 @@
     },
     "restart-setup": function () {
       state.setup = { i: 0, answers: {},
-        log: [{ me: false, text: ["Hello sweetheart. What can I do for you?"] }] };
+        log: [{ me: false, text: ["Hello. What can I do for you?"] }] };
       state.surface = "setup";
       state.sheet = null;
       render();
@@ -3130,7 +3159,7 @@
       goldeSays(["That's very kind of you, and it means the next family doesn't pay a thing. " +
         "I won't ask again, and I won't make a speech about it."]);
       goto("chat");
-      toast("Thank you, sweetheart. (Nothing was actually charged — this is a prototype.)");
+      toast("Thank you. (Nothing was actually charged — this is a prototype.)");
     },
 
     "set-occasion": function (el) {
@@ -3165,14 +3194,14 @@
     "fastforward": function () { fastForward(); },
     "reset": function () {
       if (sync.enabled) {
-        toast("Not on a real week, sweetheart. That would undo other people's evenings.");
+        toast("Not on a real week. That would undo other people's evenings.");
         return;
       }
       state.data = seed();
       state.role = "neighbor";
       state.surface = "setup";
       state.setup = { i: 0, answers: {},
-        log: [{ me: false, text: ["Hello sweetheart. What can I do for you?"] }] };
+        log: [{ me: false, text: ["Hello. What can I do for you?"] }] };
       state.sheet = null;
       state.form = {};
       state.you = { name: "" };

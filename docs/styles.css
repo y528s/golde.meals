@@ -625,3 +625,26 @@ input, textarea, select { font: inherit; color: inherit; }
 .help-btn:hover { background: var(--card); color: var(--green); border-color: var(--green-soft); }
 .help-btn.wide { width: 100%; margin-top: 14px; }
 .help-btn svg { width: 17px; height: 17px; }
+
+/* "just filled and unfilled and literally nothing else" */
+.glance-list {
+  background: var(--card); border: 1px solid var(--line-soft);
+  border-radius: var(--r-md); overflow: hidden; box-shadow: var(--shadow-card);
+}
+.glance {
+  display: flex; align-items: center; width: 100%; gap: 12px;
+  padding: 14px 16px; border: 0; border-top: 1px solid var(--line-soft);
+  background: transparent; text-align: left; font-size: 15px;
+}
+.glance:first-child { border-top: 0; }
+.g-day { flex: 1 1 auto; font-family: var(--serif); font-size: 18px; color: var(--ink); }
+.g-state { flex: 0 0 auto; font-size: 13px; color: var(--muted); }
+.glance.open { cursor: pointer; }
+.glance.open .g-state {
+  color: var(--green); font-weight: 700; background: var(--green-wash);
+  border-radius: 999px; padding: 3px 12px;
+}
+.glance.open:hover { background: var(--green-wash); }
+.glance.done .g-day, .glance.off .g-day { color: var(--muted); }
+.glance.mine .g-state { color: var(--green-soft); font-weight: 700; }
+.glance.off { opacity: .6; }
