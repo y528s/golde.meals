@@ -29,6 +29,8 @@
         peopleReached: 23,
         wrapped: false,
         paused: false,
+        planner: "Rivky Weiss",
+        plannerPhone: "15550142288",
 
         household: 5,
         householdNote: "two little ones, and a brand new baby girl",
@@ -1045,6 +1047,7 @@
       h += '<button class="btn block ghost" data-act="claim-nocook" style="margin-top:4px">' +
         "Not a cook? Help another way</button>";
     }
+    h += helpFooter();
 
     return h;
   }
@@ -1079,7 +1082,9 @@
     h += fact("Cooking for", t.household + " — " + t.householdNote + ". Leftovers are a blessing.");
     h += fact("Allergies", t.allergies.map(function (a) {
       return '<span class="tag allergy">' + esc(ALLERGY_TAGS[a] ? ALLERGY_TAGS[a].label : a) + "</span>";
-    }).join("") + '<div style="font-size:13px;color:var(--muted);margin-top:2px">' + esc(t.allergyNote) + "</div>", true);
+    }).join("") + '<div style="font-size:13px;color:var(--muted);margin-top:2px">' + esc(t.allergyNote) +
+      " I check what you type against the usual culprits, but I can only read words — " +
+      "please read the actual label.</div>", true);
     h += fact("Kosher", esc(t.kosherLevel) + '<div style="font-size:13px;color:var(--muted);margin-top:2px">' +
       esc(t.hechshers) + "</div>", true);
     if (t.loves.length) {
@@ -1113,6 +1118,17 @@
      see it — it's their own house. */
   function canSeeAddress() {
     return state.role !== "neighbor" || myClaims().length > 0;
+  }
+
+  /* Two things any real user needs within reach: a person, and somewhere to
+     complain. Both are mailto/wa.me — no backend, works from day one. */
+  function helpFooter() {
+    var t = state.data.train;
+    return '<div class="help-row">' +
+      '<button class="help-btn" data-act="message-planner">' + icon("chat") + " Ask " +
+        esc(t.planner.split(" ")[0]) + "</button>" +
+      '<button class="help-btn" data-act="feedback">' + icon("note") + " Something's wrong</button>" +
+      "</div>";
   }
 
   function fact(k, v, raw) {
@@ -1189,6 +1205,8 @@
       h += '<p class="lede" style="margin:0">All done. Nothing left for you to do, and that\'s the whole point.</p>';
     }
     h += "</div>";
+    h += '<button class="help-btn wide" data-act="feedback">' + icon("note") +
+      " Something's wrong — tell us</button>";
 
     return h;
   }
@@ -1404,6 +1422,7 @@
     h += '<button class="btn block quiet" style="margin-top:9px" data-act="say-thanks">' +
       "Say thank you to everyone</button>";
     h += "</div>";
+    h += helpFooter();
 
     return h;
   }
@@ -2897,10 +2916,25 @@
       render();
     },
     "share": function () { shareToWhatsApp(); },
-    "message-organizer": function () {
-      window.open("https://wa.me/15550142288?text=" +
-        encodeURIComponent("Hello — about the meals for the Cohens…"), "_blank", "noopener,noreferrer");
-      toast("Opening WhatsApp. It's a 555 number — it goes nowhere.");
+    "message-planner": function () {
+      var t = state.data.train;
+      window.open("https://wa.me/" + t.plannerPhone + "?text=" +
+        encodeURIComponent("Hello " + t.planner.split(" ")[0] + " — about the meals for " +
+          t.recipientFamily + "…"), "_blank", "noopener,noreferrer");
+      toast("Opening WhatsApp. It's a 555 number in the demo — it goes nowhere.");
+    },
+
+    "feedback": function () {
+      var t = state.data.train;
+      var body = "What were you trying to do?\n\n\n" +
+        "What happened instead?\n\n\n" +
+        "Anything Golde said that felt wrong?\n\n\n" +
+        "---\n" + t.title + " · " + shortDate(t.start) + "-" + shortDate(t.end) +
+        " · viewing as " + ROLES[state.role].label;
+      window.location.href = "mailto:hello@golde.meals" +
+        "?subject=" + encodeURIComponent("golde. - " + t.title) +
+        "&body=" + encodeURIComponent(body);
+      toast("Opening your email. Say anything — blunt is useful.");
     },
     /* Asking for a recipe is the one thing the family gets to give back. It has
        to land as a compliment, never as another errand for the cook. */
@@ -3282,6 +3316,10 @@
             'stroke-linecap="round" stroke-linejoin="round"/>',
       grid: '<path d="M4 6h16M4 12h16M4 18h16" fill="none" stroke="currentColor" stroke-width="2" ' +
             'stroke-linecap="round"/>',
+      chat: '<path d="M21 12a8 8 0 01-11.6 7.1L3 21l1.9-6.4A8 8 0 1121 12z" fill="none" ' +
+            'stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/>',
+      note: '<path d="M5 4h14v16l-4-3H5z" fill="none" stroke="currentColor" stroke-width="1.9" ' +
+            'stroke-linejoin="round"/>',
       share: '<path d="M4 12v7a1 1 0 001 1h14a1 1 0 001-1v-7M12 15V3m0 0L8 7m4-4l4 4" ' +
              'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" ' +
              'stroke-linejoin="round"/>',

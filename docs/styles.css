@@ -614,3 +614,14 @@ input, textarea, select { font: inherit; color: inherit; }
 }
 .reset-inline:hover { background: rgba(255,255,255,.28); }
 .viewing-as { position: relative; }
+
+/* a person to ask, and somewhere to complain — on every board */
+.help-row { display: flex; gap: 8px; margin-top: 14px; }
+.help-btn {
+  flex: 1 1 0; display: flex; align-items: center; justify-content: center; gap: 7px;
+  border: 1.5px solid var(--line); background: transparent; border-radius: var(--r-md);
+  padding: 11px 10px; font-size: 13.5px; font-weight: 600; color: var(--muted);
+}
+.help-btn:hover { background: var(--card); color: var(--green); border-color: var(--green-soft); }
+.help-btn.wide { width: 100%; margin-top: 14px; }
+.help-btn svg { width: 17px; height: 17px; }
