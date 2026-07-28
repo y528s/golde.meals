@@ -892,3 +892,9 @@ button.dc-pref:hover { border-color: currentColor; }
   font-size: 16px; color: var(--muted); line-height: 1.5; margin: 8px 0 0;
 }
 .cover-who b { color: var(--ink); font-weight: 700; }
+
+/* A night that is a whole table rather than one dinner: Friday night, Shabbat
+   lunch. The course is the heading of the slot, because on those nights the
+   question is not "which day" but "which part of the meal". */
+.slot-course { font-family: var(--serif); font-size: 18px; color: var(--ink); }
+.slot-hint { font-size: 15px; color: var(--muted); margin-top: 2px; line-height: 1.4; }

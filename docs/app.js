@@ -259,6 +259,7 @@
   function dateLabel(iso) { var x = d(iso); return MON[x.getMonth()] + " " + x.getDate(); }
   function shortDate(iso) { var x = d(iso); return MON[x.getMonth()].slice(0, 3) + " " + x.getDate(); }
   function isFriday(iso) { return d(iso).getDay() === 5; }
+  function isShabbat(iso) { return d(iso).getDay() === 6; }
 
   /* The Jewish calendar, when we have verified data for that week. Every one of
      these returns null otherwise and the app says nothing, because a wrong
@@ -1124,9 +1125,14 @@
   var KIND_LABEL = { meal: "" };
   KINDS.forEach(function (k) { KIND_ICON[k.key] = k.icon; KIND_LABEL[k.key] = k.label; });
 
-  /* "Tuesday" on an ordinary day, "Tuesday lunch" when the day is split in two.
-     Nobody should have to guess which of two identical buttons is which. */
+  /* "Tuesday" on an ordinary day, "Tuesday lunch" when the day is split in two,
+     and the course itself when the night is a whole table — because on Friday
+     there are eight buttons and "I'll cook Friday" on all of them is useless. */
   function slotWhen(day, slot) {
+    if (slot.course) {
+      var c = COURSES[slot.course] || COURSES.anything;
+      return lowerFirst(c.label);
+    }
     return dayName(day.iso) + (slot.meal ? " " + slot.meal : "");
   }
 
@@ -1136,10 +1142,15 @@
 
     if (!slot.filled) {
       h += '<div class="slot-main">';
-      /* "Nobody yet." sitting above a button that says "I'll take Tuesday" is
+      /* "Nobody yet." sitting above a button that says "I'll cook Tuesday" is
          the same sentence twice, and repetition is what makes a page feel like
-         work. It stays only where it carries something the button doesn't. */
-      if (slot.meal || t.paused || state.role !== "sender") {
+         work. It stays only where it carries something the button doesn't —
+         which course this is, which meal, or that the train is on hold. */
+      if (slot.course) {
+        var cc = COURSES[slot.course] || COURSES.anything;
+        h += '<div class="slot-course">' + esc(cc.label) + "</div>" +
+          (cc.hint ? '<div class="slot-hint">' + esc(cc.hint) + "</div>" : "");
+      } else if (slot.meal || t.paused || state.role !== "sender") {
         h += '<div class="slot-empty">' +
           (slot.meal ? esc(cap(slot.meal)) + " \u2014 nobody yet." : "Nobody yet.") + "</div>";
       }
@@ -1174,6 +1185,8 @@
     h += '<div class="slot-dish">' + esc(hideDish ? "Something warm is coming. You asked me not to spoil it, so my lips are sealed." : slot.dish) + "</div>";
     h += '<div class="slot-by">' + esc(slot.by) + " · arriving " + esc(slot.at) +
       (slot.meal ? ' <span class="badge">' + esc(cap(slot.meal)) + "</span>" : "") +
+      (slot.course && COURSES[slot.course]
+        ? ' <span class="badge">' + esc(COURSES[slot.course].label) + "</span>" : "") +
       (KIND_LABEL[slot.kind] ? ' <span class="badge">' + esc(KIND_LABEL[slot.kind]) + "</span>" : "") +
       (slot.delivered ? ' <span class="badge done">delivered</span>' : "") +
       "</div>";
@@ -1308,9 +1321,10 @@
          different act entirely — and saying what she is turns out to be the
          thing that was missing. "She is not a person" answered the wrong half
          of the question. */
-      "<p><b>Golde</b> is your friendly robotic bubby. She keeps everything in the right " +
-      "place so everybody knows what is going on — who is cooking when, what they are " +
-      "bringing, and when yours is due.</p>" +
+      "<p><b>Golde is a web app that helps you plan meals.</b> Nothing to download — " +
+      "it's all right here. She keeps everything in the right place so everybody knows " +
+      "what is going on: who is cooking when, what they are bringing, and when yours " +
+      "is due.</p>" +
       '<p class="intro-key"><span class="k-amber"></span> Anything she marks in amber is ' +
       "worth reading before you cook: a deadline, an allergy, or three of the same dish in a row.</p>" +
       "</div>";
@@ -2076,19 +2090,83 @@
 
   /* What a slot is, when it isn't a night. The hint is what she says under it on
      the board, because "a side" means nothing to somebody standing in a shop. */
+  /* One table, used by both kinds of thing. A potluck is a sitting split into
+     courses; so is a Friday night, and a family being fed for Shabbat is often
+     fed by eight different people rather than one. The only difference is that
+     on a meal train the courses hang off a night, and on a potluck they hang off
+     the one date there is. Same slots, same claim sheet, same checks. */
   var COURSES = {
-    main:     { label: "Something hot",     hint: "a tray, a pot, a roast — something that feeds a crowd" },
-    side:     { label: "A side",            hint: "rice, potatoes, a kugel" },
-    salad:    { label: "A salad",           hint: "green, or not" },
-    bread:    { label: "Challah or bread",  hint: "" },
-    dessert:  { label: "Something sweet",   hint: "or fruit. Nobody minds fruit." },
-    drinks:   { label: "Drinks",            hint: "wine, juice, something for the children" },
-    anything: { label: "Anything you like", hint: "your call entirely" }
+    challah:  { label: "Challah",            hint: "two, if you're baking anyway" },
+    apps:     { label: "Something to start", hint: "dips, a salatim, whatever gets picked at" },
+    soup:     { label: "Soup",               hint: "" },
+    main:     { label: "The main",           hint: "a tray, a pot, a roast — something that feeds them all" },
+    side:     { label: "A side",             hint: "rice, potatoes, a kugel" },
+    salad:    { label: "A salad",            hint: "green, or not" },
+    dessert:  { label: "Dessert",            hint: "or fruit. Nobody minds fruit." },
+    wine:     { label: "Wine or grape juice", hint: "something for the children too" },
+    drinks:   { label: "Drinks",             hint: "juice, something cold" },
+    anything: { label: "Anything you like",  hint: "your call entirely" }
   };
 
+  /* The order courses come in on a card. Not alphabetical and not insertion
+     order — the order they arrive at the table, because that is the order the
+     person reading the board is picturing. */
+  var COURSE_ORDER = ["challah", "apps", "soup", "main", "side", "salad",
+                      "dessert", "wine", "drinks", "anything"];
+
+  /* Slots come back in the order the food arrives at the table, and anything
+     without a course sits at the end. */
+  function sortSlots(slots) {
+    return slots.slice().sort(function (a, b) {
+      var ai = a.course ? COURSE_ORDER.indexOf(a.course) : 99;
+      var bi = b.course ? COURSE_ORDER.indexOf(b.course) : 99;
+      return ai - bi;
+    });
+  }
+
+  function sortCourses(keys) {
+    return keys.slice().sort(function (a, b) {
+      return COURSE_ORDER.indexOf(a) - COURSE_ORDER.indexOf(b);
+    });
+  }
+
+  /* Friday night and Shabbat lunch are not "dinner". They are a meal with a
+     shape, and around here a family is often fed by eight people rather than
+     one — somebody brings the soup, somebody brings a kugel, somebody bakes.
+     A single "nobody yet" slot cannot ask for that, so those two days come up
+     as a table of courses and every other day stays one slot.
+
+     The planner turns any course off, or turns the whole thing back into one
+     slot, under "Edit this day". Nothing here is imposed. */
+  function defaultCourses(iso) {
+    if (!isJewish()) return null;
+    if (isFriday(iso)) return SHABBAT_SPREAD.slice();
+    if (isShabbat(iso)) return LUNCH_SPREAD.slice();
+    return null;
+  }
+
+  function makeSlots(iso, cadence) {
+    var courses = defaultCourses(iso);
+    if (courses) {
+      return courses.map(function (c) {
+        return { id: "n" + (++state.slotSeq), filled: false, course: c };
+      });
+    }
+    if (cadence === "twice") {
+      return [{ id: "n" + (++state.slotSeq), filled: false, meal: "lunch" },
+              { id: "n" + (++state.slotSeq), filled: false, meal: "dinner" }];
+    }
+    return [{ id: "n" + (++state.slotSeq), filled: false }];
+  }
+
+  /* A whole Shabbat meal, and the shorter version for lunch where people have
+     usually eaten a full meal the night before. */
+  var SHABBAT_SPREAD = ["challah", "apps", "soup", "main", "side", "salad", "dessert", "wine"];
+  var LUNCH_SPREAD   = ["challah", "apps", "main", "side", "salad", "dessert", "wine"];
+
   var SPREADS = {
-    full:   ["main", "main", "side", "side", "salad", "bread", "dessert", "dessert", "drinks"],
-    extras: ["side", "side", "salad", "salad", "bread", "dessert", "dessert", "drinks"],
+    full:   ["main", "main", "side", "side", "salad", "challah", "dessert", "dessert", "wine"],
+    extras: ["side", "side", "salad", "salad", "challah", "dessert", "dessert", "drinks"],
     sweet:  ["dessert", "dessert", "dessert", "drinks"],
     manual: ["anything", "anything", "anything", "anything"]
   };
@@ -2452,12 +2530,16 @@
   function renderCover() {
     return '<div class="cover">' +
       '<div class="cover-mark">golde.</div>' +
-      /* Three sentences in a row started with "She" and the only thing before
-         them was a wordmark, which reads as a brand rather than a person. She
-         is named first now, and the pronouns have somewhere to land. Capital
-         Golde is the character; lowercase golde. is the thing on the tin. */
-      '<p class="cover-who"><b>Golde</b> is your friendly robotic bubby. She keeps ' +
-        "everything in the right place so everybody knows what is going on.</p>" +
+      /* "People keep asking me who Golde is."
+
+         She had been introduced as a friendly robotic bubby, which is true and
+         charming and answers a question nobody was asking. What they wanted to
+         know was what the thing on their screen IS. So the plain sentence goes
+         first and the character comes second, where it belongs — charm before
+         comprehension is just a stranger being whimsical at you. */
+      '<p class="cover-who"><b>Golde is a web app that helps you plan meals.</b> ' +
+        "Nothing to download, it's all right here. She's your friendly robotic bubby: " +
+        "she keeps everything in the right place so everybody knows what is going on.</p>" +
       '<p class="cover-line">When someone has a baby, or a loss, or just a week that has ' +
         "flattened them, everybody cooks. When everybody's eating together, they " +
         "all bring something. Golde keeps the list straight either way.</p>" +
@@ -2594,12 +2676,7 @@
     }
     /* A brand-new train has nobody on it — that is the honest starting state. */
     state.data.days.forEach(function (day, i) {
-      /* Two meals a day is a different ask from two more days: the family needs
-         lunch as well, and each sitting wants its own person. */
-      day.slots = a.cadence === "twice"
-        ? [{ id: "n" + (++state.slotSeq), filled: false, meal: "lunch" },
-           { id: "n" + (++state.slotSeq), filled: false, meal: "dinner" }]
-        : [{ id: "n" + (++state.slotSeq), filled: false }];
+      day.slots = makeSlots(day.iso, a.cadence);
       /* Every other day is what most people actually run: there are leftovers,
          and asking twenty people for seven nights is a harder ask than four. */
       if (a.cadence === "alternate") {
@@ -3115,9 +3192,51 @@
       esc("Change whatever you need. Anybody already signed up for this day hears it from me, not from a " +
           "notification that sounds like a parking ticket.") + "</span></div>";
 
+    body = coursePicker(day) + body;
+
     return sheetShell(esc(dayName(day.iso)), esc(dateLabel(day.iso)), body,
       '<button class="btn block" data-act="close-sheet">That\'s better</button>');
   };
+
+  /* Asked for directly: Friday night and Shabbat lunch want challah, apps, soup,
+     a main, a side, a salad, dessert and wine — and the planner decides which of
+     those are actually wanted. A course already taken cannot be switched off,
+     because somebody has agreed to bring it and turning it off silently would
+     be the rudest thing this software could do. */
+  function coursePicker(day) {
+    var on = {};
+    day.slots.forEach(function (x) { if (x.course) on[x.course] = true; });
+    var taken = {};
+    day.slots.forEach(function (x) { if (x.course && x.filled) taken[x.course] = true; });
+    var isTable = Object.keys(on).length > 0;
+
+    var h = '<div class="f"><span class="f-legend">What are you asking for?</span>' +
+      '<div class="hint">' +
+      (isTable
+        ? "One person for each. Anything already spoken for cannot be turned off."
+        : "One person brings dinner. Turn on a course to split the night between several people instead.") +
+      "</div>" +
+      '<div class="chips">' +
+        COURSE_ORDER.filter(function (k) { return k !== "anything" && k !== "drinks"; })
+          .map(function (k) {
+            return '<button class="chip small' + (taken[k] ? " faded" : "") +
+              '" data-act="toggle-course" data-day="' + day.id + '" data-c="' + k +
+              '" aria-pressed="' + !!on[k] + '"' +
+              (taken[k] ? ' title="Somebody is bringing this"' : "") + ">" +
+              esc(COURSES[k].label) + "</button>";
+          }).join("") +
+      "</div>";
+
+    h += '<div class="slot-actions">' +
+      '<button class="mini-link" data-act="course-preset" data-day="' + day.id +
+        '" data-p="shabbat">The whole Shabbat meal</button>' +
+      '<button class="mini-link" data-act="course-preset" data-day="' + day.id +
+        '" data-p="lunch">A Shabbat lunch</button>' +
+      '<button class="mini-link" data-act="course-preset" data-day="' + day.id +
+        '" data-p="one">Just one person, one dinner</button>' +
+      "</div></div>";
+    return h;
+  }
 
   /* --- planner: edit what someone is bringing ----------------------------- */
 
@@ -4089,7 +4208,7 @@
         id: "g" + (++state.slotSeq), iso: iso, needed: true,
         kosher: "any", from: isFriday(iso) ? "2:30" : "4:30", to: isFriday(iso) ? "4:30" : "6:00",
         candle: isFriday(iso) ? "7:52" : null,
-        slots: [{ id: "n" + (++state.slotSeq), filled: false }]
+        slots: makeSlots(iso, null)
       });
       cur.setDate(cur.getDate() + 1);
     }
@@ -4252,6 +4371,47 @@
       if (!on.length) { toast("Leave at least one, or there's nothing to offer."); return; }
       t.helpKinds = on;
       render();
+    },
+
+    "toggle-course": function (el) {
+      var day = findDay(el.getAttribute("data-day"));
+      var key = el.getAttribute("data-c");
+      if (!day) return;
+      var existing = day.slots.filter(function (x) { return x.course === key; });
+      if (existing.length) {
+        if (existing.some(function (x) { return x.filled; })) {
+          toast(COURSES[key].label + " is spoken for. Reopen it first if you want it gone.");
+          return;
+        }
+        day.slots = day.slots.filter(function (x) { return x.course !== key; });
+        /* Emptying the last course leaves the night as one plain dinner rather
+           than a card with nothing on it. */
+        if (!day.slots.length) day.slots = [{ id: "n" + (++state.slotSeq), filled: false }];
+      } else {
+        /* Turning the first course on retires the plain "somebody brings
+           dinner" slot, as long as nobody has taken it. */
+        day.slots = day.slots.filter(function (x) { return x.course || x.filled; });
+        day.slots.push({ id: "n" + (++state.slotSeq), filled: false, course: key });
+        day.slots = sortSlots(day.slots);
+      }
+      render();
+    },
+
+    "course-preset": function (el) {
+      var day = findDay(el.getAttribute("data-day"));
+      if (!day) return;
+      var keep = day.slots.filter(function (x) { return x.filled; });
+      var want = { shabbat: SHABBAT_SPREAD, lunch: LUNCH_SPREAD, one: [] }[el.getAttribute("data-p")];
+      var have = {};
+      keep.forEach(function (x) { if (x.course) have[x.course] = true; });
+      var fresh = want.filter(function (k) { return !have[k]; }).map(function (k) {
+        return { id: "n" + (++state.slotSeq), filled: false, course: k };
+      });
+      day.slots = sortSlots(keep.concat(fresh));
+      if (!day.slots.length) day.slots = [{ id: "n" + (++state.slotSeq), filled: false }];
+      render();
+      toast(want.length ? "Set. Turn off anything they don't need."
+                        : "Back to one person, one dinner.");
     },
 
     "toggle-jewish": function () {
