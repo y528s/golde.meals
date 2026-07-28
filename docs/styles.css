@@ -775,22 +775,27 @@ button, a, input, select, textarea, [role="button"] { min-height: 44px; }
 
 /* The cover. Scaffolding for a prototype being passed around on its own —
    a real person arrives from a link with context already attached. */
+/* `justify-content: center` on a scrolling flex column is a trap: the moment the
+   content is taller than the box, the overflow goes off the TOP and cannot be
+   scrolled to. The wordmark disappeared and the last line hid under the demo
+   button. Two flexible spacers do the same centring and give up gracefully. */
 .cover {
   flex: 1 1 auto; overflow-y: auto;
-  display: flex; flex-direction: column; justify-content: center;
-  padding: 32px 26px calc(32px + env(safe-area-inset-bottom));
+  display: flex; flex-direction: column; justify-content: flex-start;
+  padding: 26px 26px calc(30px + env(safe-area-inset-bottom));
   background: var(--cream);
 }
+.cover::before, .cover::after { content: ""; flex: 1 0 0; min-height: 0; }
 .cover-mark {
-  font-family: var(--serif); font-size: 46px; color: var(--green);
+  font-family: var(--serif); font-size: 44px; color: var(--green);
   letter-spacing: -.02em; line-height: 1;
 }
 .cover-line {
-  font-family: var(--serif); font-size: 21px; line-height: 1.45;
-  color: var(--ink); margin: 16px 0 30px;
+  font-family: var(--serif); font-size: 19px; line-height: 1.4;
+  color: var(--ink-soft); margin: 14px 0 18px;
 }
 .cover-ways .btn { margin-bottom: 6px; }
-.cover-sub { font-size: 15px; color: var(--muted); margin: 0 0 22px; line-height: 1.5; }
+.cover-sub { font-size: 15px; color: var(--muted); margin: 0 0 16px; line-height: 1.45; }
 .cover-foot { font-size: 15px; color: var(--muted); margin: 8px 0 0; line-height: 1.5; }
 
 /* ==========================================================================
@@ -904,8 +909,24 @@ button.dc-pref:hover { border-color: currentColor; }
    description on who golde is and what her role is" and this is the answer the
    person who made her wrote. */
 .cover-who {
-  font-size: 16px; color: var(--muted); line-height: 1.5; margin: 8px 0 0;
+  font-size: 16px; color: var(--muted); line-height: 1.45; margin: 8px 0 0;
 }
+
+/* The week, on the front page, doing what three sentences were doing badly. */
+.cover-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin: 20px 0 22px; }
+.cw {
+  aspect-ratio: 3 / 4; border-radius: 8px; border: 1.5px solid var(--line);
+  background: var(--card); display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 1px;
+}
+.cw .d { font-size: 9.5px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.cw .m { font-family: var(--serif); font-size: 15px; line-height: 1; color: var(--muted); }
+.cw.free { border-color: var(--green); border-style: dashed; background: var(--green-wash); }
+.cw.free .m, .cw.free .d { color: var(--green); }
+.cw.mine { background: var(--green); border-color: var(--green); }
+.cw.mine .m, .cw.mine .d { color: #fff; }
+.cover-key { display: flex; gap: 14px; font-size: 13.5px; color: var(--muted); margin: -14px 0 20px; }
+.cover-key b { color: var(--green); }
 .cover-who b { color: var(--ink); font-weight: 700; }
 
 /* A night that is a whole table rather than one dinner: Friday night, Shabbat

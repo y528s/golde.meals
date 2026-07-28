@@ -2572,43 +2572,44 @@
      This screen is scaffolding. It would not exist in the product.
      --------------------------------------------------------------------------- */
   function renderCover() {
+    /* Cut hard, twice over. This screen had 91 words and a paragraph explaining
+       a week; it now has a week. What survived is the sentence that answers
+       "what is this", the picture, the two ways in, and the way back for
+       somebody who has lost the message. */
+    var week = [["Sun", "done"], ["Mon", "done"], ["Tue", "free"], ["Wed", "mine"],
+                ["Thu", "done"], ["Fri", "free"], ["Shab", "done"]];
+    var mark = { done: "\u2022", free: "+", mine: "\u2713" };
+
     return '<div class="cover">' +
       '<div class="cover-mark">golde.</div>' +
-      /* "People keep asking me who Golde is."
-
-         She had been introduced as a friendly robotic bubby, which is true and
-         charming and answers a question nobody was asking. What they wanted to
-         know was what the thing on their screen IS. So the plain sentence goes
-         first and the character comes second, where it belongs — charm before
-         comprehension is just a stranger being whimsical at you. */
       '<p class="cover-who"><b>Golde is a web app that helps you plan meals.</b> ' +
-        "Nothing to download, it's all right here. She's your friendly robotic bubby: " +
-        "she keeps everything in the right place so everybody knows what is going on.</p>" +
-      '<p class="cover-line">When someone has a baby, or a loss, or just a week that has ' +
-        "flattened them, everybody cooks. When everybody's eating together, they " +
-        "all bring something. Golde keeps the list straight either way.</p>" +
+        "Nothing to download, it's all right here.</p>" +
+
+      '<div class="cover-week">' +
+        week.map(function (w) {
+          return '<div class="cw ' + w[1] + '"><span class="d">' + w[0] + "</span>" +
+            '<span class="m">' + mark[w[1]] + "</span></div>";
+        }).join("") +
+      "</div>" +
+      '<div class="cover-key"><span><b>+</b> free</span><span><b>\u2022</b> taken</span>' +
+        "<span><b>\u2713</b> yours</span></div>" +
+
       '<div class="cover-ways">' +
         '<button class="btn block" data-act="cover-plan">' +
           "I'm setting one up</button>" +
-        '<p class="cover-sub">Meals for a family, or one meal everybody brings to. Golde asks ' +
-          "you a few things on WhatsApp and hands you a link to share with your group.</p>" +
-        /* Same action as the link out of the setup conversation: both mean
-           "take me to the board as a somebody", so there is one way in, not two. */
+        '<p class="cover-sub">Meals for a family, or one meal everybody brings to.</p>' +
         '<button class="btn block ghost" data-act="skip-setup">' +
           "Somebody sent me a link</button>" +
-        '<p class="cover-sub">What everybody else sees: the week, what people are bringing, ' +
-          "and one tap to take a night.</p>" +
-        /* The third way in, for the person who has lost the message. */
+        '<p class="cover-sub">The week, and one tap to take a night.</p>' +
         '<div class="codein">' +
           '<label for="code-in">Been sent a code?</label>' +
           '<div class="codein-row">' +
-            '<input type="text" id="code-in" placeholder="Cohens 41" autocomplete="off" ' +
+            '<input type="text" id="code-in" placeholder="Cohens 20" autocomplete="off" ' +
               'autocapitalize="off" spellcheck="false">' +
             '<button class="btn sm" data-act="enter-code">Go</button>' +
           "</div></div>" +
       "</div>" +
-      '<p class="cover-foot">A prototype. Nothing is sent to anybody and nothing is saved — ' +
-        "close the tab and it forgets you.</p>" +
+      '<p class="cover-foot">A prototype. Nothing is sent and nothing is saved.</p>' +
       "</div>";
   }
 
