@@ -14,7 +14,7 @@ const EXE = process.env.CHROME || '/opt/pw-browsers/chromium-1194/chrome-linux/c
 
   await p.goto('http://localhost:8099/', { waitUntil: 'networkidle' });
   await p.click('[data-act="skip-setup"]'); await p.waitForTimeout(400);
-  await p.click('.lc-open'); await p.waitForTimeout(500);
+  /* skip-setup lands on the board already */
 
   console.log('reachable from the board:', await p.isVisible('#surface-board [data-act="keep-link"]'));
   await p.click('#surface-board [data-act="keep-link"]'); await p.waitForTimeout(400);

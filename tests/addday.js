@@ -3,6 +3,7 @@
    in the default view, so the complaint was literally true — there was nothing
    on screen to tap. Also checks the children's ages reach the cook. */
 const { chromium } = require('playwright-core');
+const { walk } = require('./setup-helper');
 const EXE = process.env.CHROME || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
 
 (async () => {
@@ -13,21 +14,9 @@ const EXE = process.env.CHROME || '/opt/pw-browsers/chromium-1194/chrome-linux/c
   p.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
   await p.goto('http://localhost:8099/', { waitUntil: 'networkidle' });
 
-  const chip = async i => { await p.click(`[data-act="setup-chip"][data-i="${i}"]`); await p.waitForTimeout(280); };
-  const type = async v => { await p.fill('#setup-field', v); await p.press('#setup-field', 'Enter'); await p.waitForTimeout(280); };
-  const skip = async () => { await p.click('[data-act="setup-skip"]'); await p.waitForTimeout(300); };
-
-  await chip(0);                    // I need a meal train
-  await type('The Osman family');
-  await chip(0);                    // a baby
-  await chip(0);                    // a week
-  await chip(0);                    // EVERY OTHER DAY
-  await chip(1);                    // 2 adults
-  await chip(2);                    // 2 children
-  await type('5 and 14');           // their ages
-  await chip(0);                    // no allergies
-  await skip();                     // nothing else
-  await skip();                     // address later
+  await walk(p, { start:0, family:'The Osman family', occasion:0, length:0, cadence:0,
+    adults:1, teens:1, littles:1, headNote:'5 and 14', allergies:0,
+    otherAllergies:null, address:null });
   await p.click('[data-act="finish-setup"]'); await p.waitForTimeout(800);
 
   console.log('DEFAULT VIEW — what she was looking at:');

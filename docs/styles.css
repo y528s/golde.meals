@@ -669,3 +669,58 @@ input, textarea, select { font: inherit; color: inherit; }
   padding: 14px; font-size: 15px; word-break: break-all; user-select: all;
   color: var(--green); font-weight: 600; margin-bottom: 12px;
 }
+
+/* ==========================================================================
+   Readable and hittable
+   --------------------------------------------------------------------------
+   A tester's note: "fine for me but not for normal Jews who can barely use
+   their email." So the two things that decide whether somebody older can
+   actually operate this — text they can read and targets they can hit — are
+   held to a floor and measured by tests/a11y.js rather than eyeballed.
+
+   44px targets (WCAG 2.5.5 / Apple HIG) and no content text below 15px.
+   Timestamps and tags stay smaller because missing them costs nothing.
+
+   This costs some vertical space. That trade is deliberate: a compact screen
+   nobody can read is worse than a longer one they can.
+   ========================================================================== */
+
+button, a, input, select, textarea, [role="button"] { min-height: 44px; }
+.reaction, .tag, .badge, .notice-time, .sb-time, .statusbar * { min-height: 0; }
+
+/* interactive text, raised to the floor */
+.mini-link      { font-size: 15px; padding: 11px 0; min-height: 44px; }
+.chip.small     { font-size: 15px; padding: 11px 15px; }
+.backlink       { font-size: 15px; padding: 11px 10px 11px 0; }
+.help-btn       { font-size: 15px; padding: 13px 12px; }
+.btn.sm         { font-size: 15px; padding: 12px 17px; }
+.chip-btn       { font-size: 15px; padding: 11px 15px; }
+.iconbtn        { min-width: 44px; min-height: 44px; }
+.ask-send, .composer .send { width: 46px; height: 46px; }
+.switch         { min-height: 30px; }
+.reset-inline   { min-height: 26px; font-size: 11px; }
+
+/* content text, raised to the floor */
+.board-dates, .lede, .hint, .f .hint, .slot-by, .contact-sub, .contact-state,
+.dc-date, .dc-window, .fact dt, .share-sub, .ask-head, .cd-dish, .cd-by,
+.linkcard .lc-sub, .g-state, .ad-day, .ad-cta { font-size: 15px; }
+
+.fact, .slot-dish, .notice, .golde-note, .panel .lede { font-size: 16px; }
+.compact-day, .glance { font-size: 16px; }
+.glance { padding: 15px 16px; }
+.compact-day { padding: 13px 4px; }
+
+/* the few things that may stay small, because missing them costs nothing */
+.notice-time, .linkcard .lc-mark, .contact-sub .via, .tag, .badge,
+.viewing-as, .section-label, .phone-caption { font-size: 12.5px; }
+.viewing-as, .section-label { font-size: 11.5px; }
+
+/* room for the taller targets */
+.slot-actions { gap: 6px 16px; }
+.contact-acts { gap: 0; }
+
+/* These two carry instructions, not decoration: what to cook, and the hour it
+   has to be at the door before Shabbos. They were the last things below the
+   floor and they were the wrong two to have there. */
+.dc-pref { font-size: 13.5px; padding: 5px 11px; }
+.golde-note.tight { font-size: 15px; padding: 12px 14px; }

@@ -27,6 +27,7 @@ CHROME=/path/to/chrome npm test
 | `addday` | a tester's exact flow: every-other-day, then slotting a day back in |
 | `keeplink` | getting back to the board a week later — copy, text, email, home screen |
 | `calendar` | parsha and fasts when verified; **silence** when not |
+| `a11y` | 44px tap targets and a 15px text floor — measured, not eyeballed |
 | `backend` / `conflict` | needs `mockapi.js`; run with `--backend` |
 
 `mockapi.js` is a stand-in for the Cloudflare Worker implementing the same

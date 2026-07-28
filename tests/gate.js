@@ -7,7 +7,7 @@ const { chromium } = require('playwright-core');
   await p.click('[data-act=\"skip-setup\"]'); await p.waitForTimeout(400);
   const addr = '418 Marion Street';
 
-  await p.click('.lc-open'); await p.waitForTimeout(500);
+  /* skip-setup lands on the board already */
   console.log('BEFORE claiming — address on board:', (await p.textContent('#board-scroll')).includes(addr));
   await p.click('[data-act="open-chat"]'); await p.waitForTimeout(400);
   await p.fill('#composer-field','where do I drop it off?'); await p.press('#composer-field','Enter');

@@ -6,7 +6,7 @@ const { chromium } = require('playwright-core');
   p.on('console',m=>{if(m.type()==='error')errs.push(m.text());});
   await p.goto('http://localhost:8099/',{waitUntil:'networkidle'});
   await p.click('[data-act="skip-setup"]'); await p.waitForTimeout(400);
-  await p.click('.lc-open'); await p.waitForTimeout(500);
+  /* skip-setup lands on the board already */
   const board = async () => { if (await p.getAttribute('#surface-board','data-pos')!=='on') {
     await p.click('#surface-chat [data-act="open-board"]'); await p.waitForTimeout(450);} };
   for (const r of ['neighbor','organizer','family']) {

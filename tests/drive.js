@@ -26,8 +26,7 @@ const URL = 'http://localhost:8099/';
   console.log('thread text ok:', (await p.textContent('#chat-scroll')).includes('Mazal tov'));
 
   // chat -> board
-  await p.click('.lc-open');
-  await p.waitForTimeout(500);
+  /* skip-setup lands on the board already */
   await p.screenshot({ path: OUT + '/02-desktop-board.png' });
   console.log('board visible:', await p.isVisible('.board-h1'));
   console.log('variety note seeded:', (await p.textContent('#board-scroll')).includes('both pasta'));
@@ -134,7 +133,7 @@ const URL = 'http://localhost:8099/';
   console.log('mobile frame border (expect 0px):', frameless);
   const hscroll = await mp.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
   console.log('no horizontal overflow:', hscroll);
-  await mp.click('.lc-open'); await mp.waitForTimeout(500);
+  /* skip-setup lands on the board already */
   await mp.screenshot({ path: OUT + '/11-mobile-board.png' });
   await (await mp.$$('button:has-text("I don\'t cook")'))[0].click();
   await mp.waitForTimeout(400);

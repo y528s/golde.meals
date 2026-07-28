@@ -1603,7 +1603,15 @@
 
     { id: "family",
       say: function () { return ["Of course. Who are we feeding?"]; },
-      input: { placeholder: "The Cohen family", send: "That's them" } },
+      input: { placeholder: "The Cohen family", send: "That's them" },
+      /* Asked once, never twice — whatever comes back the second time is taken
+         as given, because nagging about it would be worse than an odd label. */
+      check: function (v) {
+        if (!looksLikeRelationship(v)) return null;
+        return "That tells me who they are to you, but the board goes out to twenty " +
+               "people who need to know whose door to knock on. What do they get called? " +
+               "The Greens, Adam and Debbie — or Yaya, if that's what everybody says.";
+      } },
 
     { id: "occasion",
       say: function (a) { return ["And what's happened for " + a.family + ", if I may ask?"]; },
@@ -1724,6 +1732,25 @@
 
   function setupStep() { return SETUP[state.setup.i] || SETUP[SETUP.length - 1]; }
 
+  /* "My mum" is a relationship, not a name. It's what somebody types when they
+     are thinking about the person rather than about the board — and the board
+     is going to be read by twenty neighbours who need to know whose door to go
+     to. She notices, and asks once. What comes back is often better than a
+     surname: "everyone calls my mum Yaya" is exactly the right label. */
+  var RELATIONSHIP = new RegExp("^(my|our|the|a)?\\s*(dear\\s+)?(mum|mom|mother|dad|father|" +
+    "parents|sister|brother|sibling|aunt|auntie|uncle|cousin|nephew|niece|grandma|grandmother|" +
+    "granny|nana|bubby|bubbe|savta|grandpa|grandfather|zaidy|saba|daughter|son|child|kid|" +
+    "friend|neighbour|neighbor|colleague|boss|rabbi|rebbetzin|chavrusa|in-laws|inlaws|" +
+    "mother-in-law|father-in-law|family|couple|lady|woman|man|guy|someone|somebody)\\b", "i");
+
+  function looksLikeRelationship(v) {
+    var t = String(v || "").trim().toLowerCase().replace(/[.!]+$/, "");
+    if (!t) return false;
+    /* "my mum" yes; "my mum Debbie Green" no — they've told us the name. */
+    if (t.split(/\s+/).length > 4) return false;
+    return RELATIONSHIP.test(t);
+  }
+
   function renderSetup() {
     var st = state.setup;
     var step = setupStep();
@@ -1746,7 +1773,9 @@
 
     h += "</div>";
 
-    h += '<div class="wa-actions">';
+    /* Named so tests can answer "the littles step" rather than counting clicks —
+       the step order has changed three times and broken them every time. */
+    h += '<div class="wa-actions" data-step="' + esc(step.id) + '">';
     if (step.chips) {
       h += '<div class="chips">' + step.chips.map(function (c, i) {
         return '<button class="chip small" data-act="setup-chip" data-i="' + i + '">' +
@@ -1776,6 +1805,24 @@
   function setupAdvance(answerText, key, value) {
     var st = state.setup;
     if (answerText) st.log.push({ me: true, text: [answerText] });
+
+    /* A step may look at the answer and ask again, once. */
+    var current = setupStep();
+    if (current.check && !st.reasked) {
+      var again = current.check(value);
+      if (again) {
+        st.reasked = true;
+        st.log.push({ me: false, text: [again] });
+        render();
+        setTimeout(function () {
+          var el = $("#setup-scroll");
+          if (el) el.scrollTop = el.scrollHeight;
+        }, 40);
+        return;
+      }
+    }
+    st.reasked = false;
+
     if (key) st.answers[key] = value;
     st.i += 1;
     var step = setupStep();

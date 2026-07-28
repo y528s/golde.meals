@@ -6,7 +6,7 @@ const { chromium } = require('playwright-core');
   p.on('console',m=>{if(m.type()==='error')errs.push(m.text());});
   await p.goto('http://localhost:8099/',{waitUntil:'networkidle'});
   await p.click('[data-act=\"skip-setup\"]'); await p.waitForTimeout(400);
-  await p.click('.lc-open'); await p.waitForTimeout(500);
+  /* skip-setup lands on the board already */
 
   // Tuesday is a dairy night, next to Monday's ziti
   await (await p.$$('button:has-text("I\'ll take Tuesday")'))[0].click(); await p.waitForTimeout(450);

@@ -9,7 +9,8 @@ const EXE = process.env.CHROME || '/opt/pw-browsers/chromium-1194/chrome-linux/c
   p.on('console', m => { if (m.type() === 'error') errs.push('CONSOLE ' + m.text()); });
   await p.goto('http://localhost:8099/', { waitUntil: 'networkidle' });
   await p.click('[data-act=\"skip-setup\"]'); await p.waitForTimeout(400);
-  await p.waitForTimeout(300);
+  /* Skip lands on the board; the ask box lives on Golde's page. */
+  await p.click('#surface-board [data-act=\"open-chat\"]'); await p.waitForTimeout(450);
 
   const ask = async (q) => {
     await p.fill('#composer-field', q);

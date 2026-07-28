@@ -5,7 +5,7 @@ const { chromium } = require('playwright-core');
   const errs=[]; p.on('pageerror',e=>errs.push(e.message));
   await p.goto('http://localhost:8099/',{waitUntil:'networkidle'});
   await p.click('[data-act=\"skip-setup\"]'); await p.waitForTimeout(400);
-  await p.click('.lc-open'); await p.waitForTimeout(500);
+  /* skip-setup lands on the board already */
   const h = async () => p.evaluate(() => { const s=document.getElementById('board-scroll');
     return (s.scrollHeight/s.clientHeight).toFixed(1); });
   console.log('neighbour, still open :', await h(), 'screenfuls');

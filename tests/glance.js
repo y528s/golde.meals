@@ -6,7 +6,7 @@ const { chromium } = require('playwright-core');
   p.on('console',m=>{if(m.type()==='error')errs.push(m.text());});
   await p.goto('http://localhost:8099/',{waitUntil:'networkidle'});
   await p.click('[data-act="skip-setup"]'); await p.waitForTimeout(400);
-  await p.click('.lc-open'); await p.waitForTimeout(500);
+  /* skip-setup lands on the board already */
   await p.click('[data-filter="glance"]'); await p.waitForTimeout(400);
   const rows = await p.$$eval('.glance', els => els.map(e => e.innerText.replace(/\n/g,'  ')));
   console.log('AT A GLANCE:'); rows.forEach(r=>console.log('  ' + r));
