@@ -2,7 +2,10 @@
 -- small (a few KB), always read and written whole, and nothing else queries
 -- inside it. `version` is what stops two people taking Tuesday.
 CREATE TABLE IF NOT EXISTS trains (
-  id          TEXT PRIMARY KEY,
+  id          TEXT PRIMARY KEY,     -- cohen-08-26-k7f2
+  -- The planner's namespace: last four of their phone. Stored rather than
+  -- derived, so a change of number never breaks a link already shared.
+  planner_key TEXT NOT NULL DEFAULT '',
   version     INTEGER NOT NULL DEFAULT 1,
   data        TEXT    NOT NULL,
   created_at  TEXT    NOT NULL,
@@ -13,6 +16,18 @@ CREATE TABLE IF NOT EXISTS trains (
 );
 
 CREATE INDEX IF NOT EXISTS idx_trains_expires ON trains(expires_at);
+CREATE INDEX IF NOT EXISTS idx_trains_planner ON trains(planner_key);
+
+-- A planner's desk. No password: they receive a link by text, which is also how
+-- somebody gets from their phone onto a laptop. The token is stored rather than
+-- signed so it can be revoked.
+CREATE TABLE IF NOT EXISTS planners (
+  planner_key TEXT PRIMARY KEY,
+  phone       TEXT NOT NULL,
+  token       TEXT NOT NULL,
+  created_at  TEXT NOT NULL,
+  last_seen   TEXT
+);
 
 -- Reminders are written when somebody claims a night and marked sent by the
 -- cron. A row per send, so a retry can never send twice.

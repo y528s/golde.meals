@@ -14,6 +14,8 @@
    Everything it says to a person is in Golde's voice, including the failures.
    ============================================================================= */
 
+import { parsePath, randomSuffix } from "./slug.js";
+
 const JSON_HEADERS = {
   "content-type": "application/json; charset=utf-8",
   "cache-control": "no-store"
@@ -49,23 +51,42 @@ export default {
     }
 
     /*
-       A train lives at /cohens as well as /?t=cohens, because the first is
-       something a person can read off a screen, say out loud, or type from
-       memory a week later — and losing the link is the most likely way somebody
-       silently drops out of a meal train.
+       /meals/3250/cohen-08-26-k7f2  — one train
+       /meals/3250/                  — that planner's own desk
 
-       The path is rewritten to the query the app already understands rather
-       than teaching the app about routing.
+       See slug.js for why the address is shaped this way and why the random
+       suffix is load-bearing rather than decorative.
     */
-    const slug = path.replace(/^\/+|\/+$/g, "");
-    if (slug && !slug.includes(".") && /^[a-z0-9][a-z0-9-]{1,60}$/i.test(slug)) {
-      const known = await env.DB.prepare("SELECT 1 FROM trains WHERE id = ?").bind(slug).first();
+    const addr = parsePath(path);
+    if (addr) {
+      const known = await env.DB.prepare(
+        "SELECT 1 FROM trains WHERE id = ? AND planner_key = ?"
+      ).bind(addr.slug, addr.planner).first();
+
       if (known) {
         const rewritten = new URL(request.url);
         rewritten.pathname = "/";
-        rewritten.searchParams.set("t", slug);
+        rewritten.searchParams.set("t", addr.slug);
         return env.ASSETS.fetch(new Request(rewritten.toString(), request));
       }
+      return oops(404, "I can't find that one. Check the link, or ask whoever sent it to you.");
+    }
+
+    /*
+       A planner's desk. This is the part that has to be gated.
+
+       Four digits is ten thousand values, so an open dashboard here would let
+       anybody walk the whole namespace and read off, for every family in it,
+       that they have just had a baby or are sitting shiva. The trains
+       themselves are protected by the random suffix; the desk has no suffix to
+       hide behind, so it needs a session.
+
+       No password. The planner puts in their number and gets a link by text —
+       which is also exactly how somebody moves from their phone to a laptop.
+    */
+    const desk = /^\/meals\/(\d{4,10})\/?$/.exec(path);
+    if (desk) {
+      return plannerDesk(request, env, url, desk[1]);
     }
 
     /* Everything else is the prototype itself. */
@@ -198,6 +219,79 @@ async function createTrain(request, env) {
   }
 
   return json({ ok: true, id: body.id, version: 1 });
+}
+
+/* ---------------------------------------------------------------------------
+   The planner's desk
+   --------------------------------------------------------------------------- */
+
+/*
+   Held behind a token the planner receives by text, for the reason given at the
+   route. The token is stored rather than signed so that it can be revoked, and
+   it is compared in constant time so that a timing attack cannot walk it out a
+   character at a time.
+*/
+async function plannerDesk(request, env, url, plannerKey) {
+  const supplied = url.searchParams.get("k") || cookieValue(request, "golde_desk");
+  if (supplied) {
+    const row = await env.DB.prepare(
+      "SELECT token FROM planners WHERE planner_key = ?"
+    ).bind(plannerKey).first();
+
+    if (row && timingSafeEqual(row.token, supplied)) {
+      const rewritten = new URL(request.url);
+      rewritten.pathname = "/";
+      rewritten.searchParams.set("desk", plannerKey);
+      const res = await env.ASSETS.fetch(new Request(rewritten.toString(), request));
+      const out = new Response(res.body, res);
+      /* So the link only has to be followed once per device. */
+      out.headers.append("set-cookie",
+        "golde_desk=" + supplied + "; Path=/meals/" + plannerKey +
+        "; Max-Age=7776000; HttpOnly; Secure; SameSite=Lax");
+      return out;
+    }
+  }
+
+  /* No token: say whose desk it is and offer the way in, without confirming
+     anything about who they are or what they are running. */
+  return new Response(deskGate(plannerKey), {
+    status: 401,
+    headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" }
+  });
+}
+
+function deskGate(plannerKey) {
+  return '<!doctype html><meta charset="utf-8">' +
+    '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+    '<title>golde.</title>' +
+    '<style>body{font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;' +
+    'background:#FAF7F0;color:#2B2721;margin:0;display:grid;place-items:center;min-height:100dvh;' +
+    'padding:24px}main{max-width:26rem}h1{font-family:Georgia,serif;font-weight:400;font-size:2rem;' +
+    'color:#1F5346;margin:0 0 .5rem}p{color:#4A443C}input,button{font:inherit;width:100%;' +
+    'box-sizing:border-box;border-radius:999px;padding:.85rem 1.1rem;margin-top:.6rem}' +
+    'input{border:1.5px solid #E2D9C7}button{border:0;background:#1F5346;color:#fff;font-weight:600}' +
+    '</style><main><h1>golde.</h1>' +
+    "<p>This desk belongs to somebody. If it's yours, put in your number and I'll text you " +
+    "a link straight to it — no password to remember, and it works just as well on a laptop.</p>" +
+    '<form method="post" action="/api/desk-link">' +
+    '<input type="hidden" name="planner" value="' + plannerKey + '">' +
+    '<input name="phone" type="tel" placeholder="Your mobile number" autocomplete="tel">' +
+    "<button>Text me the link</button></form></main>";
+}
+
+function cookieValue(request, name) {
+  const raw = request.headers.get("cookie") || "";
+  const hit = raw.split(";").map(c => c.trim()).find(c => c.startsWith(name + "="));
+  return hit ? hit.slice(name.length + 1) : null;
+}
+
+/* Compare without leaking where two strings first differ. */
+function timingSafeEqual(a, b) {
+  a = String(a || ""); b = String(b || "");
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
 }
 
 /* ---------------------------------------------------------------------------

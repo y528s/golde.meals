@@ -4,7 +4,7 @@
   "description": "A meal train that talks like a person, not a spreadsheet.",
   "scripts": {
     "check": "node tools/check-voice.js",
-    "test": "node tests/run.js",
+    "test": "node tests/run.js && node tests/slug.test.mjs",
     "test:backend": "node tests/run.js --backend",
     "serve": "node -e \"require('http').createServer((q,s)=>{const p=require('path'),f=require('fs');const u=q.url.split('?')[0];const t=p.join('docs',u==='/'?'index.html':u);if(!f.existsSync(t)){s.writeHead(404);return s.end()}s.writeHead(200,{'content-type':{'.html':'text/html','.js':'text/javascript','.css':'text/css'}[p.extname(t)]||'text/plain','cache-control':'no-store'});s.end(f.readFileSync(t))}).listen(8080,()=>console.log('http://localhost:8080'))\""
   },
