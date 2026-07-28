@@ -1,0 +1,25 @@
+name = "golde-meals"
+main = "src/index.js"
+compatibility_date = "2026-01-01"
+
+# Serves the prototype's static files as well, so the whole thing is one origin
+# and there is no CORS to think about.
+[assets]
+directory = "../docs"
+binding = "ASSETS"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "golde-meals"
+database_id = "PUT-YOUR-D1-DATABASE-ID-HERE"
+
+# Reminders go out the evening before. 17:00 UTC — adjust to the community's
+# timezone before the first real train.
+[triggers]
+crons = ["0 17 * * *"]
+
+# Set these with `wrangler secret put NAME` — never in this file.
+#   TWILIO_ACCOUNT_SID
+#   TWILIO_AUTH_TOKEN
+#   TWILIO_FROM          e.g. +15551234567
+#   ADMIN_TOKEN          protects train creation

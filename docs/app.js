@@ -2174,7 +2174,14 @@
     state.sheet = Object.assign({ kind: kind }, extra || {});
     render();
   }
-  function closeSheet() { state.sheet = null; render(); }
+  function closeSheet() {
+    state.sheet = null;
+    if (state.pendingRemote) {
+      state.data = state.pendingRemote;
+      state.pendingRemote = null;
+    }
+    render();
+  }
 
   function goto(surface) {
     state.surface = surface;
@@ -2328,6 +2335,7 @@
       actions: [{ label: "See the board", act: "open-board" }]
     });
 
+    persist();
     goto("chat");
     toast(dayName(day.iso) + " is yours. A reminder is on its way the day before.");
   }
@@ -2357,6 +2365,7 @@
       "Consider it handled. " + dayLabel + " is open again and nobody needs a reason.",
       "Everybody, " + dayLabel + " came free. If it fits your week, it's there. If it doesn't, that's alright too."
     ]);
+    persist();
     goto("chat");
     toast("Done. " + dayLabel + " is open again — no explanation needed.");
   }
@@ -2388,6 +2397,7 @@
         "that's my job, not yours.",
       "Your reminder moved with you. Nothing for you to remember."
     ]);
+    persist();
     goto("chat");
     toast("You're on " + newLabel + " now.");
   }
@@ -2401,6 +2411,7 @@
       "That's one more night that family didn't have to think about. Thank you, sweetheart.",
       "Go sit down."
     ]);
+    persist();
     goto("chat");
   }
 
@@ -2468,6 +2479,7 @@
       ], { card: "donation" });
     }
     state.sheet = null;
+    persist();
     goto("chat");
   }
 
@@ -2483,6 +2495,7 @@
         "This is good news — it means it worked.",
       "I'll wave you back in when they're ready. Nobody loses their place."
     ]);
+    persist();
     goto("chat");
     toast("Done. Everybody has the week off, and nobody will ask why.");
   }
@@ -2497,6 +2510,7 @@
           plural(open.length, "is", "are") + " open again whenever you're ready."
         : "Everything's still covered, so there's nothing to do but keep being lovely."
     ]);
+    persist();
     goto("chat");
   }
 
@@ -2749,6 +2763,7 @@
       day.offReason = "No meal needed this day. Somebody's already got it covered, and that's allowed.";
       toast("No meal on " + dayName(day.iso) + ". I'll tell the group so nobody cooks for nothing.");
     }
+    persist();
     render();
   }
 
@@ -2757,6 +2772,7 @@
     if (!day) return;
     day.slots.push({ id: "n" + (++state.slotSeq), filled: false });
     day.needed = true;
+    persist();
     render();
     toast("Room for one more on " + dayName(day.iso) + ".");
   }
@@ -2765,6 +2781,7 @@
     var day = findDay(dayId);
     if (!day) return;
     day.slots = day.slots.filter(function (s) { return s.id !== slotId; });
+    persist();
     render();
   }
 
@@ -2775,6 +2792,7 @@
     loc.slot.filled = false;
     delete loc.slot.kind; delete loc.slot.by; delete loc.slot.dish;
     delete loc.slot.mine; delete loc.slot.delivered; delete loc.slot.at;
+    persist();
     render();
     toast(dayName(loc.day.iso) + " is open again. I'll let " + who + " know myself — kindly.");
   }
@@ -2913,7 +2931,7 @@
     "set-kosher": function (el) {
       var day = findDay(el.getAttribute("data-day"));
       if (day) day.kosher = el.getAttribute("data-k");
-      render();
+      changed();
     },
     "share": function () { shareToWhatsApp(); },
     "message-planner": function () {
@@ -2982,6 +3000,7 @@
             "in without your say-so — that was your say-so."
           : "Just for her, as you said. It goes nowhere else."
       ]);
+      persist();
       goto("chat");
     },
 
@@ -3024,7 +3043,7 @@
       var c = findContact(el.getAttribute("data-contact"));
       if (!c) return;
       c.optedIn = !c.optedIn;
-      render();
+      changed();
       toast(c.optedIn
         ? "Lovely. I'll keep " + c.name.split(" ")[0] + " in the loop."
         : "Not another word to " + c.name.split(" ")[0] + " from me.");
@@ -3034,7 +3053,7 @@
       var id = el.getAttribute("data-contact");
       var c = findContact(id);
       state.data.contacts = state.data.contacts.filter(function (x) { return x.id !== id; });
-      render();
+      changed();
       if (c) toast(c.name + " is off my list. No hard feelings.");
     },
 
@@ -3059,7 +3078,7 @@
       var list = state.data.train.allergies;
       var i = list.indexOf(tag);
       if (i > -1) list.splice(i, 1); else list.push(tag);
-      render();
+      changed();
     },
     "toggle-bell": function () {
       var t = state.data.train;
@@ -3067,11 +3086,11 @@
       t.dropoff = t.ringBell
         ? "Ring the bell once. If nobody comes, leave it on the bench — it's shaded."
         : "Please just leave it at the door and go. No knock, no bell. Somebody is probably asleep.";
-      render();
+      changed();
     },
     "toggle-surprise": function () {
       state.data.train.showDishes = !state.data.train.showDishes;
-      render();
+      changed();
       toast(state.data.train.showDishes
         ? "You'll see everything that's coming."
         : "My lips are sealed. You'll find out at the door.");
@@ -3093,6 +3112,7 @@
         tender: ["There it is. Go on, all of you — you've earned a quiet evening."],
         quiet:  ["There it is."]
       }));
+      persist();
       goto("chat");
     },
 
@@ -3144,6 +3164,10 @@
 
     "fastforward": function () { fastForward(); },
     "reset": function () {
+      if (sync.enabled) {
+        toast("Not on a real week, sweetheart. That would undo other people's evenings.");
+        return;
+      }
       state.data = seed();
       state.role = "neighbor";
       state.surface = "setup";
@@ -3272,6 +3296,12 @@
      11. RENDER LOOP
      =========================================================================== */
 
+  /* One place to say "that changed, write it down". */
+  function changed() {
+    persist();
+    render();
+  }
+
   function render() {
     var setupEl = $("#surface-setup"), chatEl = $("#surface-chat"), boardEl = $("#surface-board");
 
@@ -3309,6 +3339,50 @@
     el.scrollTop = saved.atTop ? 0 : saved.top;
   }
 
+  /* ===========================================================================
+     Talking to the backend
+     ---------------------------------------------------------------------------
+     Off entirely unless a train id is in the URL, so the public demo keeps
+     working with nothing behind it. When it is on, every change is written
+     straight away and the board refreshes itself every few seconds.
+     =========================================================================== */
+
+  var sync = window.goldeSync || { enabled: false };
+
+  /* Called after anything that changes the train. Optimistic: the person sees
+     their change immediately and we reconcile behind them. */
+  function persist() {
+    if (!sync.enabled) return;
+    sync.save(state.data).then(function (res) {
+      if (res.outcome === "ok") return;
+
+      if (res.outcome === "conflict") {
+        /* Somebody was quicker. Take their version — dropping ours is the
+           point — and say so kindly, because from where this person is sitting
+           nothing has gone wrong. */
+        state.data = res.data;
+        render();
+        toast(res.said || "Somebody got there a moment before you. Here's how it stands now.");
+        return;
+      }
+      toast(res.said || "That didn't save. Have another go in a moment.");
+    });
+  }
+
+  /* A poll came back with somebody else's change. Don't yank the page out from
+     under a person mid-sentence — if a sheet is open, wait until they're done. */
+  function adoptRemote(data) {
+    if (state.sheet) { state.pendingRemote = data; return; }
+    var before = JSON.stringify(state.data);
+    if (JSON.stringify(data) === before) return;
+    state.data = data;
+    render();
+  }
+
+  if (sync.enabled) {
+    sync.onchange = adoptRemote;
+  }
+
   /* Tiny inline icon set — no network, no icon font. */
   function icon(name) {
     var paths = {
@@ -3336,7 +3410,24 @@
 
   $("#demo-fab").addEventListener("click", function () { openSheet("demo", {}); });
 
-  render();
+  /* With a real train behind it, the seed is only a placeholder until the
+     backend answers — and setup is skipped, because this train already exists. */
+  if (sync.enabled) {
+    state.surface = "board";
+    state.role = "neighbor";
+    render();
+    sync.load().then(function (data) {
+      if (data) {
+        state.data = data;
+      } else if (sync.lastError) {
+        toast(sync.lastError);
+      }
+      render();
+      sync.start();
+    });
+  } else {
+    render();
+  }
   scrollChatToBottom();
 
 })();
