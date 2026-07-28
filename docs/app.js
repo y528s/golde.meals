@@ -26,7 +26,7 @@
         occasion: "new-baby",
         start: "2026-08-02",
         end: "2026-08-08",
-        neighborCount: 23,
+        peopleReached: 23,
         wrapped: false,
         paused: false,
 
@@ -202,10 +202,15 @@
     remindedSlots: {}
   };
 
+  /* Planner / Sender / Recipient. Not geographical — half the people who feed a
+     family are shul, friends or a sister two towns over — and none of these
+     words splits on US/UK spelling. "Sender" covers groceries and gift cards
+     without implying anybody cooked. These label the interface; Golde herself
+     still says "everybody", because no grandmother says "sender". */
   var ROLES = {
-    organizer: { label: "Organizer", who: "the organizer", blurb: "Runs the train" },
-    neighbor:  { label: "Neighbor",  who: "a neighbor",    blurb: "Signs up for a night" },
-    family:    { label: "Family",    who: "Sarah Cohen",   blurb: "Receiving the meals" }
+    organizer: { label: "Planner",   who: "the planner",   blurb: "Sets up the train" },
+    neighbor:  { label: "Sender",    who: "a sender",      blurb: "Sends a meal in" },
+    family:    { label: "Recipient", who: "the recipient", blurb: "Receiving the meals" }
   };
 
   /* ===========================================================================
@@ -741,7 +746,8 @@
         esc(dayName(t.end) + ", " + dateLabel(t.end)) + " · " + esc(occasionText(t.occasion)) + "</div>" +
       "</header>";
 
-    h += '<div class="viewing-as">Viewing as <em>' + esc(ROLES[state.role].label) + "</em></div>";
+    h += '<div class="viewing-as">Viewing as <em>' + esc(ROLES[state.role].label) + "</em>" +
+      '<button class="reset-inline" data-act="reset">reset demo</button></div>';
     h += '<div class="scroller" id="board-scroll"><div class="board-body">';
 
     if (state.role === "organizer") h += boardOrganizer();
@@ -773,23 +779,6 @@
 
   function occasionText(key) {
     return (OCCASIONS[key] || OCCASIONS["new-baby"]).text;
-  }
-
-  function statsRow() {
-    var t = state.data.train;
-    var filled = filledSlots().length;
-    var open = state.data.days.reduce(function (n, day) {
-      return n + (day.needed ? day.slots.filter(function (s) { return !s.filled; }).length : 0);
-    }, 0);
-    var delivered = filledSlots().filter(function (x) { return x.slot.delivered; }).length;
-    var openNights = openDays().length;
-    void t; void open;
-    return '<div class="stats">' +
-      '<div class="stat"><b>' + filled + "</b><span>" + plural(filled, "signed up", "signed up") + "</span></div>" +
-      '<div class="stat"><b>' + openNights + "</b><span>" +
-        plural(openNights, "night open", "nights open") + "</span></div>" +
-      '<div class="stat"><b>' + delivered + "</b><span>delivered</span></div>" +
-      "</div>";
   }
 
   /* --- the day cards, shared across roles ---------------------------------- */
@@ -1002,7 +991,6 @@
     }
     h += '<div class="golde-note"><span class="gn-mark">golde.</span><span>' + esc(lede) + "</span></div>";
 
-    h += statsRow();
 
     if (mine.length) {
       h += '<div class="panel"><h3>Your night' + (mine.length > 1 ? "s" : "") + "</h3>" +
@@ -1147,7 +1135,6 @@
         : "Every night is covered. You did that. Now don't go rearranging it just because you can.";
     h += '<div class="golde-note"><span class="gn-mark">golde.</span><span>' + esc(lede) + "</span></div>";
 
-    h += statsRow();
 
     h += '<div class="panel"><h3>The train</h3>' +
       '<p class="lede" style="margin-bottom:10px">' +
@@ -1192,7 +1179,7 @@
     h += contactsPanel();
 
     h += '<div class="panel"><h3>When you need me</h3>' +
-      '<p class="lede">One tap each. I\'ll do the asking so you don\'t have to be the one nagging your neighbors.</p>';
+      '<p class="lede">One tap each. I\'ll do the asking so you don\'t have to be the one nagging.</p>';
     if (!t.wrapped) {
       h += '<button class="btn block" data-act="nudge" style="margin-bottom:9px"' +
         (open.length ? "" : " disabled") + ">Nudge the group about the open " +
@@ -1226,7 +1213,7 @@
     var unsigned = contacts.filter(function (c) { return c.optedIn && !contactStatus(c.name); });
     var quiet = contacts.filter(function (c) { return !c.optedIn && c.channel !== "calendar"; });
 
-    var h = '<div class="panel"><h3>The neighbors</h3>' +
+    var h = '<div class="panel"><h3>Your people</h3>' +
       '<p class="lede">Everyone I can reach, and where they are this week. I message people one ' +
       'at a time — a reminder in a group chat is just noise.</p>';
 
@@ -2153,8 +2140,8 @@
       '<button class="btn block ghost" style="margin-bottom:9px" data-act="fastforward">' +
         "Send tomorrow's reminder now</button>" +
       '<button class="btn block ghost" style="margin-bottom:9px" data-act="restart-setup">' +
-        "Start a train from scratch</button>" +
-      '<button class="btn block quiet" data-act="reset">Start the demo over</button></div>';
+        "Set up a new train from scratch</button>" +
+      '<button class="btn block" data-act="reset">Reset everything, back to the start</button></div>';
 
     return sheetShell("Demo controls", "Not part of the product", body,
       '<button class="btn block" data-act="close-sheet">Back to it</button>');
@@ -2662,7 +2649,7 @@
         "back up and quietly let the others know."];
     }
     if (/thank|todah|toda raba/.test(t)) {
-      return ["Don't thank me. Thank the " + train.neighborCount + " people who said yes. " +
+      return ["Don't thank me. Thank the " + train.peopleReached + " people who said yes. " +
         "I only did the pestering."];
     }
     if (/(what|which|any|anything|something)[^?]{0,20}(open|left|available|free|still need)|still open|nights? left/.test(t)) {
