@@ -1,0 +1,10 @@
+#!/bin/sh
+# Install with:  ln -sf ../../tools/pre-commit .git/hooks/pre-commit
+#
+# Blocks a commit that reintroduces a banned word. This is the enforcement —
+# the words were removed once already, and they came back into the Worker
+# within a day of being removed from the app.
+node tools/check-voice.js || {
+  echo "Commit blocked. Fix the wording, or edit tools/check-voice.js if the rule is wrong."
+  exit 1
+}

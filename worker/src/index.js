@@ -112,7 +112,7 @@ async function writeTrain(request, env, id, ctx) {
   try {
     body = await request.json();
   } catch (e) {
-    return oops(400, "I couldn't make sense of that, sweetheart. Try again.");
+    return oops(400, "I couldn't make sense of that. Try again.");
   }
 
   if (typeof body.version !== "number" || !body.data) {

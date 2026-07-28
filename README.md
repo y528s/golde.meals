@@ -114,3 +114,31 @@ database, it's a bug worth filing.
 `screenshots/` holds desktop (1280px, in the phone frame) and mobile (390px,
 full-bleed) captures of the whole loop, including the allergen check firing
 mid-flow. They live outside `docs/` so they aren't served by Pages.
+
+## Words she does not say
+
+```bash
+npm run check          # or: node tools/check-voice.js
+```
+
+Fails the build if a banned word reaches a user-facing string. It exists
+because a tester asked "Why is it calling me sweetheart?" and answered her own
+question — "I didn't like it." A pet name from a stranger's software is
+presumption wearing the costume of warmth.
+
+Removing the words once was not enough: one came straight back in the Worker,
+written the same day, and the check caught it. Install the hook so it cannot
+happen again:
+
+```bash
+ln -sf ../../tools/pre-commit .git/hooks/pre-commit
+```
+
+Banned outright: sweetheart, sweetie, mammele, bubbele, darling, dearie,
+poppet, "my dear". Banned only as a form of address, since they're innocent as
+nouns: honey, hon, dear, love, sugar — "honey cake" and "they love lemon" pass,
+"Thanks, love" does not.
+
+**The warmth is in what she notices and what she takes off your plate.** It is
+not in what she calls you. If a line only sounds warm because of the name at
+the end of it, the line isn't warm.

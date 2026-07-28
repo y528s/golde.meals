@@ -1,0 +1,8 @@
+{
+  "name": "golde-meals",
+  "private": true,
+  "description": "A meal train that talks like a person, not a spreadsheet.",
+  "scripts": {
+    "check": "node tools/check-voice.js"
+  }
+}
