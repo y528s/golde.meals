@@ -106,7 +106,10 @@ const TWO_SPELLINGS = [
      both have to be caught there, so both spellings must appear. */
 const SPELLING_SKIP = [
   /color\s*:/i, /-color\b/i, /currentColor/, /overscroll-behavior/, /scroll-behavior/,
-  /RELATIONSHIP = new RegExp/, /colleague\|boss\|rabbi/
+  /RELATIONSHIP = new RegExp/, /colleague\|boss\|rabbi/,
+  /* Setting a style from script is the same language keyword wearing a different
+     hat. Found by the tests rather than by reading, which is the point of them. */
+  /\bstyle\.[a-z]*[Cc]olor\b/, /\.[a-z]*[Cc]olor\s*=/
 ];
 
 /* Strip comments so a note about the rule doesn't trip the rule. */
@@ -124,14 +127,12 @@ function stripComments(src, ext) {
 const OFF = /voice-check:\s*off/i;
 const ON  = /voice-check:\s*on/i;
 
-let failures = [];
-
-for (const rel of FILES) {
-  const full = path.join(ROOT, rel);
-  if (!fs.existsSync(full)) continue;
-
-  const raw = fs.readFileSync(full, "utf8");
-  const ext = path.extname(full);
+/* One file's worth of checking, pulled out so it can be exercised on strings
+   rather than only on the repository. The distinction this rests on — "Golde is
+   your bubby" describes her, "Thanks, bubby" addresses you — is subtle enough
+   that it deserves a test rather than my word for it. See check-voice.test.js. */
+function scan(raw, rel, ext) {
+  const failures = [];
   const cleaned = stripComments(raw, ext);
   const lines = cleaned.split("\n");
 
@@ -156,7 +157,7 @@ for (const rel of FILES) {
   });
 
   /* The spelling half reads the file whole, comments and all. */
-  if (ext === ".css") continue;
+  if (ext === ".css") return failures;
   let mutedToo = false;
   raw.split("\n").forEach((line, i) => {
     if (OFF.test(line)) mutedToo = true;
@@ -172,6 +173,19 @@ for (const rel of FILES) {
       }
     }
   });
+
+  return failures;
+}
+
+module.exports = { scan, BANNED, VOCATIVE, TWO_SPELLINGS };
+if (require.main !== module) return;
+
+let failures = [];
+for (const rel of FILES) {
+  const full = path.join(ROOT, rel);
+  if (!fs.existsSync(full)) continue;
+  const ext = path.extname(full);
+  failures = failures.concat(scan(fs.readFileSync(full, "utf8"), rel, ext));
 }
 
 if (!failures.length) {

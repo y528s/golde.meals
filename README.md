@@ -118,7 +118,7 @@ mid-flow. They live outside `docs/` so they aren't served by Pages.
 ## Words she does not say
 
 ```bash
-npm run check          # or: node tools/check-voice.js
+npm run check          # the checker's own tests, then the check itself
 ```
 
 Fails the build on two things. First, an endearment reaching a user-facing
@@ -132,6 +132,18 @@ small signal about whose product this is. There is nearly always a plain word
 both sides already agree on, so the rule costs nothing and is only hard to keep
 by memory. Hence: not memory. Documentation that needs to *name* a banned word
 brackets it with `voice-check: off` / `voice-check: on`.
+
+The rule the whole thing rests on is about position, not vocabulary:
+<!-- voice-check: off -->
+"Golde is your friendly robotic bubby" describes her and passes; "Thanks,
+bubby" addresses a stranger and fails. Same word, opposite acts.
+<!-- voice-check: on -->
+That distinction is carried entirely by one regex about punctuation, so
+`tools/check-voice.test.js` exercises it on 24 strings — both halves of every
+pair, both escape hatches, and the hatch closing again afterwards. It runs
+first in `npm run check` and in the pre-commit hook, so a broken rule fails
+loudly instead of quietly passing everything. It has already found one real
+gap: a style set from script, which the prose rule was flagging as prose.
 
 The endearment half exists
 <!-- voice-check: off -->
