@@ -1,0 +1,960 @@
+/* ==========================================================================
+   golde. meals — prototype styles
+   Brand: cream #FAF7F0 with a warm forest green. Deliberately NOT #075E54 —
+   that is WhatsApp's exact hex, and this is her own page, not theirs. Every
+   other WhatsApp cue (ticks, bubble green, patterned backdrop) is gone too.
+   Warm, rounded, generous. Never corporate.
+   ========================================================================== */
+
+:root {
+  --cream:        #FAF7F0;
+  --cream-deep:   #F3EDE1;
+  --card:         #FFFFFF;
+  --green:        #1F5346;   /* warm forest, not WhatsApp teal */
+  --green-soft:   #2E7561;
+  --green-live:   #3FA37F;
+  --green-wash:   #EBF2ED;
+  --ink:          #2B2721;   /* body text */
+  --ink-soft:     #4A443C;
+  --muted:        #6E665D;   /* AA on cream at small sizes */
+  --line:         #E2D9C7;
+  --line-soft:    #EFE8DA;
+  --amber:        #B0721E;
+  --amber-wash:   #FBF1DF;
+  --rose:         #A8452F;
+  --rose-wash:    #FBEDE9;
+
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 22px;
+  --r-xl: 30px;
+
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  --shadow-card: 0 1px 2px rgba(43,39,33,.05), 0 6px 18px rgba(43,39,33,.06);
+  --shadow-pop:  0 10px 40px rgba(43,39,33,.18);
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--ink);
+  background: #EDE5D6;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+input, textarea, select { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--green-live); outline-offset: 2px; border-radius: 6px; }
+
+/* ---------- Stage (desktop chrome around the device) ---------------------- */
+
+.stage {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 64px;
+  padding: 40px 32px;
+  background:
+    radial-gradient(1000px 700px at 12% -10%, #FBF6EA 0%, rgba(251,246,234,0) 60%),
+    radial-gradient(900px 700px at 105% 110%, #E3EEE8 0%, rgba(227,238,232,0) 55%),
+    #EDE5D6;
+}
+.stage-aside { max-width: 330px; }
+.wordmark-lg {
+  font-family: var(--serif);
+  font-size: 60px;
+  letter-spacing: -0.02em;
+  color: var(--green);
+  line-height: 1;
+}
+.stage-blurb {
+  font-family: var(--serif);
+  font-size: 21px;
+  line-height: 1.4;
+  color: var(--ink-soft);
+  margin: 18px 0 0;
+}
+.stage-note { font-size: 14px; color: var(--muted); margin: 22px 0 0; }
+
+.phone-wrap { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.phone-caption { font-size: 13px; color: var(--muted); margin: 0; }
+
+.phone {
+  position: relative;
+  width: 390px;
+  height: 800px;
+  max-height: calc(100dvh - 110px);
+  background: var(--cream);
+  border: 11px solid #1D1B18;
+  border-radius: 46px;
+  box-shadow: 0 30px 70px rgba(43,39,33,.30), 0 2px 0 rgba(255,255,255,.35) inset;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.notch {
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 130px; height: 26px; background: #1D1B18;
+  border-radius: 0 0 16px 16px; z-index: 60; pointer-events: none;
+}
+.statusbar {
+  height: 30px; flex: 0 0 30px; z-index: 61;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 22px; font-size: 12px; font-weight: 600;
+  background: #1D1B18; color: #F6F1E7;
+}
+.sb-right { display: inline-flex; gap: 5px; align-items: center; }
+.sb-bars, .sb-wifi, .sb-batt { display: inline-block; background: currentColor; border-radius: 2px; opacity: .9; }
+.sb-bars { width: 15px; height: 9px; clip-path: polygon(0 65%,22% 65%,22% 100%,0 100%,0 65%,26% 40%,48% 40%,48% 100%,26% 100%,26% 40%,52% 18%,74% 18%,74% 100%,52% 100%,52% 18%,78% 0,100% 0,100% 100%,78% 100%); }
+.sb-wifi { width: 13px; height: 10px; clip-path: polygon(50% 100%, 0 30%, 12% 18%, 50% 55%, 88% 18%, 100% 30%); }
+.sb-batt { width: 20px; height: 10px; border-radius: 3px; }
+
+.viewport { position: relative; flex: 1 1 auto; overflow: hidden; }
+.surface {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  background: var(--cream);
+  transition: transform .34s cubic-bezier(.32,.72,0,1), opacity .28s ease;
+  will-change: transform;
+}
+.surface[data-pos="off-right"] { transform: translateX(100%); opacity: .4; pointer-events: none; }
+.surface[data-pos="off-left"]  { transform: translateX(-24%); opacity: .25; pointer-events: none; }
+.surface[data-pos="on"]        { transform: translateX(0); opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .surface { transition: none; } }
+
+/* ---------- Shared bits --------------------------------------------------- */
+
+.topbar {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px; background: var(--green); color: #fff;
+}
+.topbar .avatar {
+  width: 38px; height: 38px; border-radius: 50%;
+  background: var(--cream); color: var(--green);
+  font-family: var(--serif); font-size: 19px;
+  display: grid; place-items: center; flex: 0 0 auto;
+}
+.topbar-mark { font-family: var(--serif); font-size: 22px; line-height: 1.1; letter-spacing: -.01em; }
+.topbar-sub { font-size: 12px; opacity: .82; line-height: 1.3; }
+.iconbtn {
+  background: transparent; border: 0; color: inherit;
+  padding: 8px; border-radius: 50%; line-height: 0; display: grid; place-items: center;
+}
+.iconbtn:hover { background: rgba(255,255,255,.14); }
+
+.scroller { flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+
+.btn {
+  border: 0; border-radius: 999px; padding: 13px 20px;
+  font-size: 15px; font-weight: 600; background: var(--green); color: #fff;
+  transition: transform .12s ease, filter .12s ease;
+}
+.btn:hover { filter: brightness(1.08); }
+.btn:active { transform: scale(.98); }
+.btn.block { display: block; width: 100%; }
+.btn.ghost { background: transparent; color: var(--green); border: 1.5px solid var(--line); }
+.btn.ghost:hover { background: var(--green-wash); }
+.btn.quiet { background: var(--cream-deep); color: var(--ink-soft); }
+.btn.sm { padding: 9px 15px; font-size: 14px; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+
+.wordmark { font-family: var(--serif); color: var(--green); letter-spacing: -0.01em; }
+
+/* ---------- golde.'s page (was: a WhatsApp impersonation) -------------------
+   Deliberately NOT chat furniture. No green outgoing bubbles, no blue ticks,
+   no patterned backdrop, no group header. It reads as its own small site so
+   nobody thinks their real WhatsApp is behaving strangely.
+   -------------------------------------------------------------------------- */
+
+.feed-bg { background: var(--cream); padding: 16px 14px 60px; }
+
+.ask-card {
+  background: var(--card); border: 1px solid var(--line-soft); border-radius: var(--r-lg);
+  padding: 14px 15px; box-shadow: var(--shadow-card); margin-bottom: 14px;
+}
+.ask-head { font-size: 13.5px; color: var(--muted); margin-bottom: 10px; }
+.ask-head .wordmark { font-size: 16px; }
+.ask-form { display: flex; gap: 8px; align-items: center; }
+.ask-field {
+  flex: 1 1 auto; min-width: 0; border: 1.5px solid var(--line); border-radius: 999px;
+  padding: 11px 15px; font-size: 16px; background: var(--cream);
+}
+.ask-field:focus { border-color: var(--green-soft); outline: none; background: #fff; }
+.ask-send {
+  flex: 0 0 auto; width: 42px; height: 42px; border-radius: 50%; border: 0;
+  background: var(--green); color: #fff; display: grid; place-items: center;
+}
+.ask-send:hover { filter: brightness(1.1); }
+
+.share-btn {
+  display: flex; align-items: center; justify-content: center; gap: 9px;
+  width: 100%; border: 1.5px solid var(--line); background: var(--card);
+  border-radius: var(--r-md); padding: 13px; font-size: 15px; font-weight: 600;
+  color: var(--green); box-shadow: var(--shadow-card);
+}
+.share-btn:hover { background: var(--green-wash); }
+.share-sub { font-size: 12.5px; color: var(--muted); text-align: center; margin: 7px 0 0; }
+
+.notice {
+  position: relative; background: var(--card); border: 1px solid var(--line-soft);
+  border-radius: var(--r-md); padding: 12px 14px; margin-bottom: 10px;
+  font-size: 15px; line-height: 1.5; box-shadow: var(--shadow-card);
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.notice.from-golde { background: var(--green-wash); border-color: transparent; }
+.notice.mine { background: var(--cream-deep); border-color: transparent; }
+.notice-who {
+  display: flex; align-items: baseline; gap: 8px;
+  font-size: 13px; font-weight: 700; color: var(--green-soft); margin-bottom: 5px;
+}
+.notice-who .wordmark { font-weight: 400; font-size: 16px; }
+.notice-time { margin-left: auto; font-weight: 400; font-size: 11.5px; color: var(--muted); }
+.notice p { margin: 0 0 7px; }
+.notice p:last-of-type { margin-bottom: 0; }
+.reaction {
+  position: absolute; bottom: -9px; right: 12px;
+  background: #fff; border-radius: 999px; padding: 1px 6px;
+  font-size: 12px; box-shadow: 0 1px 3px rgba(43,39,33,.18); animation: pop .22s ease;
+}
+@keyframes pop { from { transform: scale(.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+/* golde.'s own link card — a card on her page, not a chat link preview */
+.linkcard {
+  margin: 4px 0 8px; background: var(--card); border-radius: 12px;
+  overflow: hidden; border: 1px solid var(--line-soft);
+}
+.linkcard .lc-top { padding: 12px 13px 11px; }
+.linkcard .lc-mark {
+  font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted);
+}
+.linkcard .lc-title { font-weight: 700; font-size: 15px; margin-top: 3px; }
+.linkcard .lc-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.linkcard .lc-open {
+  display: block; width: 100%; text-align: center; border: 0; border-top: 1px solid var(--line-soft);
+  background: var(--cream); color: var(--green); font-weight: 700; font-size: 14px; padding: 12px;
+}
+.linkcard .lc-open:hover { background: var(--green-wash); }
+
+.inline-card {
+  margin-top: 9px; border-top: 1px solid rgba(43,39,33,.09); padding-top: 9px;
+  display: flex; gap: 8px; flex-wrap: wrap;
+}
+.chip-btn {
+  border: 1.5px solid var(--line); background: var(--card);
+  border-radius: 999px; padding: 7px 13px; font-size: 13px; font-weight: 600; color: var(--green);
+}
+.chip-btn:hover { background: var(--green-wash); }
+.chip-btn.solid { background: var(--green); color: #fff; border-color: var(--green); }
+.chip-btn.solid:hover { filter: brightness(1.1); }
+
+/* ---------- Board surface ------------------------------------------------- */
+
+.board-top {
+  flex: 0 0 auto; background: var(--cream); border-bottom: 1px solid var(--line);
+  padding: 10px 14px 12px;
+}
+.board-top .row1 { display: flex; align-items: center; gap: 10px; }
+.backlink {
+  border: 0; background: transparent; color: var(--green); font-size: 14px; font-weight: 600;
+  padding: 6px 8px 6px 0; display: inline-flex; align-items: center; gap: 5px; margin-left: -4px;
+}
+.board-mark { font-family: var(--serif); font-size: 20px; color: var(--green); margin-left: auto; }
+.board-h1 { font-family: var(--serif); font-size: 22px; line-height: 1.15; margin: 6px 0 2px; color: var(--ink); }
+.board-dates { font-size: 13.5px; color: var(--muted); }
+.board-body { padding: 12px 13px 110px; background: var(--cream); }
+
+/* ==========================================================================
+   Three kinds of thing, and you can tell which is which
+   --------------------------------------------------------------------------
+   "The sections are similar in colour, so I wasn't sure what all the different
+   sections do or mean. It is something I could work out, but it was taking me
+   time." Everything used to be a rounded cream box: her remarks, the reference
+   material, and the one night you were meant to take. Same weight, same
+   surface, no heading.
+
+   Now there are exactly three species and they do not resemble each other.
+
+     1. Golde talking     no card, no fill, a green rule down the left. It is
+                          speech, so it should look like speech.
+     2. Something to do   the only white card with a shadow, with a green edge
+                          and a real button. If it is white, you can act on it.
+     3. For reference     flat, tinted, no shadow. Clearly not a button.
+
+   Plus a heading over every group saying what the group is, in plain words.
+   ========================================================================== */
+
+/* 1. Her voice. */
+.golde-note {
+  display: flex; gap: 9px; align-items: flex-start;
+  background: transparent; border-left: 3px solid var(--green-soft);
+  border-radius: 0; padding: 2px 0 2px 12px;
+  font-size: 15px; line-height: 1.5; color: var(--ink-soft);
+  margin: 0 0 14px;
+}
+.golde-note .gn-mark {
+  font-family: var(--serif); color: var(--green); font-size: 15px; flex: 0 0 auto; line-height: 1.4;
+}
+.golde-note.warn { border-left-color: var(--amber); color: #6C4A12; background: transparent; }
+.golde-note.warn .gn-mark { color: var(--amber); }
+.golde-note.tight { padding: 2px 0 2px 12px; font-size: 15px; margin: 10px 0 0; }
+
+/* Inside a sheet she is the only thing talking, so the rule is enough on its
+   own and the tint would only fight the sheet's own surface. */
+.sheet-body .golde-note { margin-bottom: 16px; }
+
+/* The heading over each group. Small, but it is the thing that answers "what
+   is this bit for", so it is not decoration and it does not get smaller. */
+.section-label {
+  font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--green); margin: 24px 0 9px;
+  padding-bottom: 6px; border-bottom: 1px solid var(--line);
+}
+.section-label:first-child { margin-top: 2px; }
+
+/* The key under the week. Five words, and a tester's afternoon back. */
+.wk-key {
+  display: flex; gap: 16px; margin: -4px 0 16px 2px;
+  font-size: 13px; color: var(--muted);
+}
+.wk-key b { color: var(--green); font-size: 14px; }
+
+/* 2. Something to do. White, raised, with a green edge you can see from across
+   the room. Nothing else on the page looks like this. */
+.daycard {
+  background: var(--card); border: 1px solid var(--line-soft); border-radius: var(--r-md);
+  padding: 13px 15px; margin-bottom: 10px; box-shadow: var(--shadow-card);
+}
+.daycard.open {
+  border-color: var(--line-soft); border-left: 4px solid var(--green);
+  background: var(--card); box-shadow: var(--shadow-card);
+}
+.daycard.off {
+  background: transparent; box-shadow: none; border-style: dashed; border-left-width: 1px;
+}
+.daycard.mine { border-color: var(--green-live); box-shadow: 0 0 0 2px rgba(37,211,102,.16), var(--shadow-card); }
+.dc-head { display: flex; align-items: baseline; gap: 8px; }
+.dc-day { font-family: var(--serif); font-size: 19px; color: var(--ink); }
+.dc-date { font-size: 13px; color: var(--muted); }
+.dc-window { margin-left: auto; font-size: 12.5px; color: var(--muted); text-align: right; white-space: nowrap; }
+.dc-pref {
+  display: inline-block; margin-top: 7px; font-size: 12px; font-weight: 700;
+  letter-spacing: .05em; text-transform: uppercase; color: var(--green-soft);
+  background: var(--green-wash); border-radius: 999px; padding: 3px 9px;
+}
+.dc-pref.pareve { color: #5A5340; background: #F2EEE0; }
+.dc-pref.dairy { color: #1F5E86; background: #E6F0F7; }
+
+.slot { display: flex; gap: 10px; align-items: flex-start; margin-top: 9px; }
+.slot + .slot { border-top: 1px dashed var(--line-soft); padding-top: 12px; }
+.slot-icon {
+  flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 16px;
+  background: var(--cream-deep);
+}
+.slot-icon.filled { background: var(--green-wash); }
+.slot-main { flex: 1 1 auto; min-width: 0; }
+.slot-dish { font-size: 15.5px; line-height: 1.4; color: var(--ink); }
+.slot-by { font-size: 13.5px; color: var(--muted); margin-top: 2px; }
+.slot-by .badge {
+  display: inline-block; margin-left: 6px; font-size: 11px; font-weight: 700;
+  color: var(--green); background: var(--green-wash); border-radius: 999px; padding: 2px 7px;
+  text-transform: uppercase; letter-spacing: .05em;
+}
+.slot-by .badge.done { color: #46603F; background: #E9F1E4; }
+.slot-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.slot-empty { font-size: 15px; color: var(--muted); font-style: italic; }
+
+.mini-link {
+  background: none; border: 0; padding: 4px 0; font-size: 13.5px; font-weight: 600;
+  color: var(--green); text-decoration: underline; text-underline-offset: 3px;
+}
+.mini-link.danger { color: var(--rose); }
+
+/* facts / preference panels */
+/* 3. For reference. Flat and tinted — it holds still while you read it, and it
+   never pretends to be a button. */
+.panel {
+  background: var(--cream-deep); border: 0; border-radius: var(--r-md);
+  padding: 14px 15px; margin-bottom: 10px; box-shadow: none;
+}
+.panel h3 + .lede { margin-top: 2px; }
+.panel h3 { font-family: var(--serif); font-size: 18px; margin: 0 0 4px; font-weight: 400; }
+.panel .lede { font-size: 14px; color: var(--muted); margin: 0 0 14px; line-height: 1.5; }
+.fact { display: flex; gap: 10px; padding: 9px 0; border-top: 1px solid var(--line-soft); font-size: 14.5px; }
+.fact:first-of-type { border-top: 0; padding-top: 2px; }
+.fact dt { flex: 0 0 108px; color: var(--muted); font-size: 13.5px; }
+.fact dd { margin: 0; flex: 1 1 auto; color: var(--ink); }
+.tag {
+  display: inline-block; font-size: 12.5px; font-weight: 600; border-radius: 999px;
+  padding: 3px 9px; margin: 0 5px 5px 0;
+}
+.tag.allergy { background: var(--rose-wash); color: var(--rose); }
+.tag.love { background: var(--amber-wash); color: #7A5211; }
+.tag.dislike { background: var(--cream-deep); color: var(--ink-soft); }
+
+/* contact book */
+.contact {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 12px 0; border-top: 1px solid var(--line-soft);
+}
+.contact:first-of-type { border-top: 0; padding-top: 2px; }
+.contact-main { flex: 1 1 auto; min-width: 0; }
+.contact-name { font-size: 15px; font-weight: 600; }
+.contact-name .badge.quiet {
+  display: inline-block; font-size: 10.5px; font-weight: 700; letter-spacing: .05em;
+  text-transform: uppercase; color: var(--muted); background: var(--cream-deep);
+  border-radius: 999px; padding: 2px 7px; vertical-align: 1px;
+}
+.contact-sub { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.contact-state { font-size: 13.5px; color: var(--muted); font-style: italic; margin-top: 3px; }
+.contact-state.has { color: var(--green-soft); font-style: normal; }
+.contact-acts {
+  flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
+}
+.contact-acts .mini-link { font-size: 12.5px; white-space: nowrap; }
+
+.stats { display: flex; gap: 7px; margin-bottom: 11px; }
+.stat {
+  flex: 1 1 0; background: var(--card); border: 1px solid var(--line-soft);
+  border-radius: var(--r-md); padding: 8px 10px; text-align: center; box-shadow: var(--shadow-card);
+}
+.stat b { display: block; font-family: var(--serif); font-size: 20px; color: var(--green); line-height: 1.1; }
+.stat span { font-size: 12px; color: var(--muted); }
+
+/* form controls */
+.f { margin-bottom: 12px; }
+.f > label, .f-legend {
+  display: block; font-size: 13.5px; font-weight: 700; color: var(--ink-soft); margin-bottom: 6px;
+}
+.f .hint { font-size: 13px; color: var(--muted); margin: -2px 0 7px; line-height: 1.45; }
+.f input[type="text"], .f input[type="date"], .f input[type="time"], .f textarea, .f select {
+  width: 100%; border: 1.5px solid var(--line); border-radius: 14px;
+  padding: 12px 13px; background: #fff; font-size: 16px; line-height: 1.4;
+}
+.f textarea { resize: vertical; min-height: 76px; }
+.f input:focus, .f textarea:focus, .f select:focus { border-color: var(--green-soft); outline: none; }
+.f-row { display: flex; gap: 10px; }
+.f-row > .f { flex: 1 1 0; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  border: 1.5px solid var(--line); background: #fff; border-radius: 999px;
+  padding: 9px 14px; font-size: 14px; font-weight: 600; color: var(--ink-soft);
+}
+.chip[aria-pressed="true"] { background: var(--green); border-color: var(--green); color: #fff; }
+.chip.small { padding: 6px 11px; font-size: 13px; }
+
+.toggle-row {
+  display: flex; align-items: center; gap: 12px; padding: 11px 0;
+  border-top: 1px solid var(--line-soft);
+}
+.toggle-row:first-child { border-top: 0; }
+.toggle-row .tr-main { flex: 1 1 auto; }
+.toggle-row .tr-title { font-size: 14.5px; font-weight: 600; }
+.toggle-row .tr-sub { font-size: 13px; color: var(--muted); line-height: 1.45; margin-top: 2px; }
+.switch {
+  flex: 0 0 auto; width: 50px; height: 30px; border-radius: 999px; border: 0;
+  background: #D7CFC0; position: relative; transition: background .18s ease;
+}
+.switch::after {
+  content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px;
+  border-radius: 50%; background: #fff; transition: transform .18s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,.22);
+}
+.switch[aria-pressed="true"] { background: var(--green-live); }
+.switch[aria-pressed="true"]::after { transform: translateX(20px); }
+
+/* ---------- Sheets / modals ---------------------------------------------- */
+
+.sheet-scrim {
+  position: absolute; inset: 0; background: rgba(43,39,33,.42); z-index: 70;
+  animation: fade .2s ease;
+}
+@keyframes fade { from { opacity: 0 } to { opacity: 1 } }
+.sheet-host {
+  position: absolute; inset: 0; z-index: 71; display: flex; flex-direction: column;
+  justify-content: flex-end; pointer-events: none;
+}
+.sheet {
+  pointer-events: auto; background: var(--cream);
+  border-radius: var(--r-xl) var(--r-xl) 0 0; box-shadow: var(--shadow-pop);
+  max-height: 92%; display: flex; flex-direction: column;
+  animation: rise .3s cubic-bezier(.32,.72,0,1);
+}
+@keyframes rise { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .sheet { animation: none; } }
+.sheet-grab { width: 40px; height: 4px; border-radius: 2px; background: var(--line); margin: 10px auto 0; flex: 0 0 auto; }
+.sheet-head { padding: 12px 20px 8px; flex: 0 0 auto; }
+.sheet-head h2 { font-family: var(--serif); font-size: 23px; font-weight: 400; margin: 0; line-height: 1.2; }
+.sheet-head .sub { font-size: 14px; color: var(--muted); margin-top: 3px; }
+.sheet-body { padding: 8px 20px 4px; overflow-y: auto; flex: 1 1 auto; }
+.sheet-foot {
+  padding: 12px 20px calc(18px + env(safe-area-inset-bottom)); flex: 0 0 auto;
+  border-top: 1px solid var(--line-soft); background: var(--cream);
+  display: flex; flex-direction: column; gap: 9px;
+}
+
+.golde-say {
+  font-family: var(--serif); font-size: 18px; line-height: 1.5; color: var(--ink);
+  margin: 0 0 12px;
+}
+.golde-say + .golde-say { margin-top: -4px; }
+.concern {
+  background: #fff; border: 1px solid var(--line-soft); border-left: 4px solid var(--amber);
+  border-radius: 12px; padding: 12px 14px; margin-bottom: 10px;
+  font-size: 15px; line-height: 1.5; color: var(--ink-soft);
+}
+.concern.allergy { border-left-color: var(--rose); }
+.concern.variety { border-left-color: var(--green-soft); }
+
+.livehint {
+  font-size: 13.5px; line-height: 1.45; color: var(--amber); margin-top: 7px; min-height: 0;
+}
+.livehint:empty { display: none; }
+.livehint.allergy { color: var(--rose); }
+
+/* ---------- Demo control -------------------------------------------------- */
+
+.demo-fab {
+  position: absolute; right: 14px; bottom: 20px; z-index: 65;
+  background: #1D1B18; color: #fff; border: 0; border-radius: 999px;
+  padding: 9px 15px; font-size: 11.5px; font-weight: 700;
+  letter-spacing: .13em; text-transform: uppercase;
+  box-shadow: 0 6px 20px rgba(43,39,33,.35);
+  display: flex; align-items: center; gap: 7px;
+}
+.demo-fab::before {
+  content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--green-live);
+}
+/* The board has no composer, so the control can sit lower and stop covering cards. */
+#phone[data-surface="board"] .demo-fab { bottom: 20px; }
+.demo-panel .role-grid { display: flex; gap: 8px; }
+.role-card {
+  flex: 1 1 0; border: 1.5px solid var(--line); background: #fff; border-radius: var(--r-md);
+  padding: 12px 8px; text-align: center;
+}
+.role-card b { display: block; font-size: 14px; }
+.role-card span { display: block; font-size: 11.5px; color: var(--muted); margin-top: 2px; line-height: 1.3; }
+.role-card[aria-pressed="true"] { border-color: var(--green); background: var(--green-wash); }
+.role-card[aria-pressed="true"] b { color: var(--green); }
+.demo-disclaimer {
+  font-size: 12.5px; color: var(--muted); line-height: 1.5;
+  background: var(--cream-deep); border-radius: 12px; padding: 10px 12px; margin: 4px 0 14px;
+}
+
+.viewing-as {
+  flex: 0 0 auto; font-size: 11.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  background: #1D1B18; color: #fff; text-align: center; padding: 5px 10px;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+}
+.viewing-as em { font-style: normal; color: var(--green-live); }
+
+/* ---------- Toast --------------------------------------------------------- */
+
+.toast-host {
+  position: absolute; left: 12px; right: 12px; bottom: 74px; z-index: 66;
+  display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+}
+.toast {
+  background: #1D1B18; color: #F6F1E7; border-radius: 14px; padding: 11px 14px;
+  font-size: 14px; line-height: 1.45; box-shadow: var(--shadow-pop);
+  animation: rise .25s ease;
+}
+
+/* ---------- Mobile: drop the frame, go full-bleed -------------------------- */
+
+@media (max-width: 640px) {
+  body { background: var(--cream); }
+  .stage { padding: 0; gap: 0; display: block; background: var(--cream); }
+  .stage-aside, .phone-caption { display: none; }
+  .phone-wrap { display: block; }
+  .phone {
+    width: 100%; height: 100dvh; max-height: none;
+    border: 0; border-radius: 0; box-shadow: none;
+  }
+  .notch { display: none; }
+  .statusbar { display: none; }
+  .sheet { max-height: 90%; }
+  .demo-fab { bottom: calc(20px + env(safe-area-inset-bottom)); }
+  #phone[data-surface="board"] .demo-fab { bottom: calc(20px + env(safe-area-inset-bottom)); }
+  .feed-bg { padding-bottom: calc(90px + env(safe-area-inset-bottom)); }
+  .board-body { padding-bottom: calc(140px + env(safe-area-inset-bottom)); }
+}
+
+@media (max-width: 1080px) and (min-width: 641px) {
+  .stage-aside { display: none; }
+}
+
+.contact-sub .via {
+  display: inline-block; margin-left: 6px; font-size: 11px; font-weight: 700;
+  letter-spacing: .05em; text-transform: uppercase; color: var(--green-soft);
+  background: var(--green-wash); border-radius: 999px; padding: 2px 7px;
+}
+
+/* a recipe, written out by hand */
+.recipe-card {
+  background: var(--card); border: 1px solid var(--line-soft); border-left: 4px solid var(--amber);
+  border-radius: 12px; padding: 16px 18px;
+  font-family: var(--serif); font-size: 17px; line-height: 1.65; color: var(--ink);
+  white-space: pre-wrap;
+}
+
+/* a go-to meal that doesn't quite suit tonight — dimmed, never disabled */
+.chip.faded { opacity: .5; border-style: dashed; }
+.chip.faded:hover { opacity: .85; }
+
+/* a segmented filter, so the page opens on what you came for */
+.chips.seg { margin-bottom: 14px; }
+.chips.seg .chip { flex: 1 1 0; text-align: center; }
+
+/* a settled night — one line instead of a card */
+.compact-day {
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 10px 4px; border-bottom: 1px solid var(--line-soft);
+  font-size: 14px;
+}
+.cd-day { flex: 0 0 74px; font-family: var(--serif); font-size: 16px; color: var(--ink); }
+.cd-dish {
+  flex: 1 1 auto; min-width: 0; color: var(--ink-soft);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cd-by { flex: 0 0 auto; color: var(--muted); font-size: 12.5px; }
+.compact-day .mini-link { flex: 0 0 auto; font-size: 12.5px; }
+
+/* ---------- Setup: this one really is WhatsApp ------------------------------
+   The organizer messaged her first, which opens the free-form reply window.
+   Styled as a chat because here that is the medium, not an imitation.
+   -------------------------------------------------------------------------- */
+.topbar.wa { background: #123A31; }
+.wa-bg { background: #EFE7D8; padding: 16px 12px 8px; }
+.wa-row { display: flex; margin-bottom: 9px; }
+.wa-row.out { justify-content: flex-end; }
+.wa-bubble {
+  max-width: 84%; padding: 10px 13px; border-radius: 16px;
+  background: #fff; box-shadow: 0 1px 1px rgba(43,39,33,.10);
+  font-size: 15px; line-height: 1.5;
+}
+.wa-row.in .wa-bubble  { border-top-left-radius: 5px; }
+.wa-row.out .wa-bubble { background: var(--green-wash); border-top-right-radius: 5px; }
+.wa-bubble p { margin: 0 0 7px; }
+.wa-bubble p:last-child { margin-bottom: 0; }
+.wa-actions {
+  flex: 0 0 auto; padding: 12px 14px calc(16px + env(safe-area-inset-bottom));
+  background: var(--cream); border-top: 1px solid var(--line);
+}
+.wa-actions .chips { justify-content: flex-start; }
+
+/* reset, within reach on every screen — it's a demo, people poke at it */
+.reset-inline {
+  margin-left: auto; background: rgba(255,255,255,.14); color: inherit;
+  border: 0; border-radius: 999px; padding: 3px 9px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+}
+.reset-inline:hover { background: rgba(255,255,255,.28); }
+.viewing-as { position: relative; }
+
+/* a person to ask, and somewhere to complain — on every board */
+.help-row { display: flex; gap: 8px; margin-top: 14px; }
+.help-btn {
+  flex: 1 1 0; display: flex; align-items: center; justify-content: center; gap: 7px;
+  border: 1.5px solid var(--line); background: transparent; border-radius: var(--r-md);
+  padding: 11px 10px; font-size: 13.5px; font-weight: 600; color: var(--muted);
+}
+.help-btn:hover { background: var(--card); color: var(--green); border-color: var(--green-soft); }
+.help-btn.wide { width: 100%; margin-top: 0; margin-bottom: 9px; }
+.help-row + .help-btn.wide { margin-top: 9px; }
+.help-btn svg { width: 17px; height: 17px; }
+
+/* "just filled and unfilled and literally nothing else" */
+.glance-list {
+  background: var(--card); border: 1px solid var(--line-soft);
+  border-radius: var(--r-md); overflow: hidden; box-shadow: var(--shadow-card);
+}
+.glance {
+  display: flex; align-items: center; width: 100%; gap: 12px;
+  padding: 14px 16px; border: 0; border-top: 1px solid var(--line-soft);
+  background: transparent; text-align: left; font-size: 15px;
+}
+.glance:first-child { border-top: 0; }
+.g-day { flex: 1 1 auto; font-family: var(--serif); font-size: 18px; color: var(--ink); }
+.g-state { flex: 0 0 auto; font-size: 13px; color: var(--muted); }
+.glance.open { cursor: pointer; }
+.glance.open .g-state {
+  color: var(--green); font-weight: 700; background: var(--green-wash);
+  border-radius: 999px; padding: 3px 12px;
+}
+.glance.open:hover { background: var(--green-wash); }
+.glance.done .g-day, .glance.off .g-day { color: var(--muted); }
+.glance.mine .g-state { color: var(--green-soft); font-weight: 700; }
+.glance.off { opacity: .6; }
+
+/* a day nobody is cooking on, and the tap that brings it back */
+.add-day {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  border: 1.5px dashed var(--line); background: transparent;
+  border-radius: var(--r-md); padding: 12px 14px; margin-bottom: 9px; text-align: left;
+}
+.add-day:hover { border-color: var(--green-soft); background: var(--card); }
+.ad-day { flex: 1 1 auto; font-family: var(--serif); font-size: 16px; color: var(--muted); }
+.ad-cta { flex: 0 0 auto; font-size: 13px; font-weight: 700; color: var(--green); }
+.glance.addable { cursor: pointer; opacity: 1; }
+.glance.addable .g-day { color: var(--muted); }
+.glance.addable .g-state { color: var(--green); font-weight: 700; }
+.glance.addable:hover { background: var(--green-wash); }
+
+/* the link, big enough to read off a screen and select by hand */
+.linkbox {
+  background: var(--cream-deep); border: 1px solid var(--line); border-radius: 12px;
+  padding: 14px; font-size: 15px; word-break: break-all; user-select: all;
+  color: var(--green); font-weight: 600; margin-bottom: 12px;
+}
+
+/* ==========================================================================
+   Readable and hittable
+   --------------------------------------------------------------------------
+   A tester's note: "fine for me but not for normal Jews who can barely use
+   their email." So the two things that decide whether somebody older can
+   actually operate this — text they can read and targets they can hit — are
+   held to a floor and measured by tests/a11y.js rather than eyeballed.
+
+   44px targets (WCAG 2.5.5 / Apple HIG) and no content text below 15px.
+   Timestamps and tags stay smaller because missing them costs nothing.
+
+   This costs some vertical space. That trade is deliberate: a compact screen
+   nobody can read is worse than a longer one they can.
+   ========================================================================== */
+
+button, a, input, select, textarea, [role="button"] { min-height: 44px; }
+.reaction, .tag, .badge, .notice-time, .sb-time, .statusbar * { min-height: 0; }
+
+/* interactive text, raised to the floor */
+.mini-link      { font-size: 15px; padding: 11px 0; min-height: 44px; }
+.chip.small     { font-size: 15px; padding: 11px 15px; }
+.backlink       { font-size: 15px; padding: 11px 10px 11px 0; }
+.help-btn       { font-size: 15px; padding: 13px 12px; }
+.btn.sm         { font-size: 15px; padding: 12px 17px; }
+.chip-btn       { font-size: 15px; padding: 11px 15px; }
+.iconbtn        { min-width: 44px; min-height: 44px; }
+.ask-send, .composer .send { width: 46px; height: 46px; }
+.switch         { min-height: 30px; }
+.reset-inline   { min-height: 26px; font-size: 11px; }
+
+/* content text, raised to the floor */
+.board-dates, .lede, .hint, .f .hint, .slot-by, .contact-sub, .contact-state,
+.dc-date, .dc-window, .fact dt, .share-sub, .ask-head, .cd-dish, .cd-by,
+.linkcard .lc-sub, .g-state, .ad-day, .ad-cta { font-size: 15px; }
+
+.fact, .slot-dish, .notice, .golde-note, .panel .lede { font-size: 16px; }
+.compact-day, .glance { font-size: 16px; }
+.compact-day { background: transparent; }
+.glance { padding: 15px 16px; }
+.compact-day { padding: 13px 4px; }
+
+/* the few things that may stay small, because missing them costs nothing */
+.notice-time, .linkcard .lc-mark, .contact-sub .via, .tag, .badge,
+.viewing-as, .section-label, .phone-caption { font-size: 12.5px; }
+.viewing-as, .section-label { font-size: 11.5px; }
+
+/* room for the taller targets */
+.slot-actions { gap: 6px 16px; }
+.contact-acts { gap: 0; }
+
+/* These two carry instructions, not decoration: what to cook, and the hour it
+   has to be at the door before Shabbat. They were the last things below the
+   floor and they were the wrong two to have there. */
+.dc-pref { font-size: 13.5px; padding: 5px 11px; }
+.golde-note.tight { font-size: 15px; padding: 12px 14px; }
+
+/* The cover. Scaffolding for a prototype being passed around on its own —
+   a real person arrives from a link with context already attached. */
+/* `justify-content: center` on a scrolling flex column is a trap: the moment the
+   content is taller than the box, the overflow goes off the TOP and cannot be
+   scrolled to. The wordmark disappeared and the last line hid under the demo
+   button. Two flexible spacers do the same centring and give up gracefully. */
+.cover {
+  flex: 1 1 auto; overflow-y: auto;
+  display: flex; flex-direction: column; justify-content: flex-start;
+  padding: 26px 26px calc(30px + env(safe-area-inset-bottom));
+  background: var(--cream);
+}
+.cover::before, .cover::after { content: ""; flex: 1 0 0; min-height: 0; }
+.cover-mark {
+  font-family: var(--serif); font-size: 44px; color: var(--green);
+  letter-spacing: -.02em; line-height: 1;
+}
+.cover-line {
+  font-family: var(--serif); font-size: 19px; line-height: 1.4;
+  color: var(--ink-soft); margin: 14px 0 18px;
+}
+.cover-ways .btn { margin-bottom: 6px; }
+.cover-sub { font-size: 15px; color: var(--muted); margin: 0 0 16px; line-height: 1.45; }
+.cover-foot { font-size: 15px; color: var(--muted); margin: 8px 0 0; line-height: 1.5; }
+
+/* ==========================================================================
+   The potluck board
+   --------------------------------------------------------------------------
+   A row per thing somebody can bring, rather than a card per night. The two
+   facts people text the host about before they come — children, and the dog —
+   sit at the top as tags so nobody has to ask.
+   ========================================================================== */
+.tagrow { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; }
+.tagrow .tag {
+  background: var(--green-wash); color: var(--green);
+  font-size: 13.5px; padding: 6px 12px; margin: 0;
+}
+.tagrow .tag.warn { background: var(--amber-wash); color: #7A5211; }
+
+.potluck-list {
+  background: var(--card); border: 1px solid var(--line-soft);
+  border-radius: var(--r-md); overflow: hidden; box-shadow: var(--shadow-card);
+  margin-bottom: 4px;
+}
+.course { padding: 15px 16px; border-top: 1px solid var(--line-soft); }
+.course:first-child { border-top: 0; }
+.course-what { font-family: var(--serif); font-size: 19px; color: var(--ink); }
+.course-hint { font-size: 15px; color: var(--muted); margin-top: 3px; line-height: 1.45; }
+.course-dish { font-size: 16px; color: var(--ink); margin-top: 3px; }
+.course-by { font-size: 15px; color: var(--muted); margin-top: 2px; }
+.course.open { background: var(--green-wash); }
+.course.open .course-what { color: var(--green); }
+.course.filled .course-what { color: var(--muted); font-size: 16px; }
+.course.mine { box-shadow: inset 3px 0 0 var(--green); }
+
+/* The one control that turns the Jewish defaults off. Deliberately plain — it
+   is a setting somebody touches once, not a feature to advertise. */
+.calswitch {
+  display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap;
+  border-top: 1px solid var(--line-soft); margin-top: 12px; padding-top: 10px;
+  font-size: 15px; color: var(--muted); line-height: 1.45;
+}
+.calswitch span { flex: 1 1 190px; }
+
+/* The kosher wish is a button now, not a label. */
+button.dc-pref { border: 1px dashed transparent; }
+button.dc-pref:hover { border-color: currentColor; }
+
+/* ==========================================================================
+   The week, as a picture
+   --------------------------------------------------------------------------
+   "Show don't tell... they're busy and probably only paying 50% attention."
+   Three states, readable at a glance and without reading: a + you can tap, a
+   dot somebody else has, a tick that is yours. Scrolls sideways for long runs.
+   ========================================================================== */
+/* A week has to fit. Seven cells at a fixed 56px overflowed a 390px phone and
+   clipped Friday and Shabbat at the edge with nothing to say they were there —
+   so the two days most likely to need somebody were the two you could not see.
+
+   The cells flex instead: seven fill the width exactly, and a longer run holds
+   at 46px and scrolls, with a fade at the edge so it is obvious there is more.
+   46px keeps the tap target above the 44px floor. */
+.weekstrip {
+  display: flex; gap: 6px; overflow-x: auto; padding: 2px 2px 12px;
+  scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+  -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 22px), transparent 100%);
+          mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 22px), transparent 100%);
+}
+/* The fade is only honest when there is something behind it. Seven or fewer
+   days fit, so the mask comes off. */
+.weekstrip[data-fits="yes"] {
+  -webkit-mask-image: none; mask-image: none;
+}
+.weekstrip::-webkit-scrollbar { display: none; }
+.ws-day {
+  flex: 1 0 auto; min-width: 46px; scroll-snap-align: start; min-height: 76px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  border-radius: 14px; border: 1.5px solid var(--line); background: var(--card);
+  padding: 8px 4px; text-align: center;
+}
+.ws-dow { font-size: 12.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.ws-num { font-family: var(--serif); font-size: 21px; line-height: 1.1; color: var(--ink); }
+.ws-mark { font-size: 17px; line-height: 1; font-weight: 700; color: var(--muted); }
+
+.ws-day.open {
+  border-color: var(--green); border-style: dashed; background: var(--green-wash);
+}
+.ws-day.open .ws-num, .ws-day.open .ws-mark { color: var(--green); }
+.ws-day.open:hover { background: #DFEBE3; }
+.ws-day.done { background: var(--cream-deep); border-color: transparent; }
+.ws-day.done .ws-num { color: var(--muted); }
+.ws-day.mine { background: var(--green); border-color: var(--green); }
+.ws-day.mine .ws-dow, .ws-day.mine .ws-num, .ws-day.mine .ws-mark { color: #fff; }
+.ws-day.off { opacity: .4; border-style: dotted; }
+
+.fact-sub { color: var(--muted); font-size: 15px; }
+.backlink-none { display: inline-block; }
+
+/* The three sentences that answer "who is golde", "who is Rivky", and "why are
+   some of these amber". Reference species — flat, tinted, not a button. */
+.panel.intro p { margin: 0 0 9px; font-size: 15.5px; line-height: 1.55; color: var(--ink-soft); }
+.panel.intro p:last-child { margin-bottom: 0; }
+.panel.intro b { color: var(--ink); font-weight: 700; }
+.panel.intro .wordmark { font-size: 17px; }
+.intro-key { display: flex; gap: 9px; align-items: flex-start; }
+.k-amber {
+  flex: 0 0 auto; width: 3px; align-self: stretch; min-height: 20px;
+  background: var(--amber); border-radius: 2px;
+}
+.nowrap { white-space: nowrap; }
+
+/* Who she is, said before anything else. A tester asked for "a short
+   description on who golde is and what her role is" and this is the answer the
+   person who made her wrote. */
+.cover-who {
+  font-size: 16px; color: var(--muted); line-height: 1.45; margin: 8px 0 0;
+}
+
+/* The week, on the front page, doing what three sentences were doing badly. */
+.cover-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin: 20px 0 22px; }
+.cw {
+  aspect-ratio: 3 / 4; border-radius: 8px; border: 1.5px solid var(--line);
+  background: var(--card); display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 1px;
+}
+.cw .d { font-size: 9.5px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.cw .m { font-family: var(--serif); font-size: 15px; line-height: 1; color: var(--muted); }
+.cw.free { border-color: var(--green); border-style: dashed; background: var(--green-wash); }
+.cw.free .m, .cw.free .d { color: var(--green); }
+.cw.mine { background: var(--green); border-color: var(--green); }
+.cw.mine .m, .cw.mine .d { color: #fff; }
+.cover-key { display: flex; gap: 14px; font-size: 13.5px; color: var(--muted); margin: -14px 0 20px; }
+.cover-key b { color: var(--green); }
+.cover-who b { color: var(--ink); font-weight: 700; }
+
+/* A night that is a whole table rather than one dinner: Friday night, Shabbat
+   lunch. The course is the heading of the slot, because on those nights the
+   question is not "which day" but "which part of the meal". */
+.slot-course { font-family: var(--serif); font-size: 18px; color: var(--ink); }
+.slot-hint { font-size: 15px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+
+/* The code. A link is unguessable and unsayable; this is the sayable half, for
+   the person whose group chat has buried the message. */
+.codebox {
+  display: flex; flex-direction: column; gap: 4px;
+  background: var(--green-wash); border-radius: var(--r-md);
+  padding: 14px 16px; margin-top: 14px;
+}
+.cb-lab { font-size: 13px; letter-spacing: .08em; text-transform: uppercase;
+          font-weight: 700; color: var(--green); }
+.cb-code {
+  font-family: var(--serif); font-size: 30px; line-height: 1.1; color: var(--ink);
+  letter-spacing: -.01em;
+}
+.cb-note { font-size: 15px; color: var(--muted); line-height: 1.45; }
+
+.codein { margin-top: 4px; padding-top: 16px; border-top: 1px solid var(--line-soft); }
+.codein label { display: block; font-size: 15px; color: var(--muted); margin-bottom: 8px; }
+.codein-row { display: flex; gap: 8px; }
+.codein-row input {
+  flex: 1 1 auto; min-width: 0; border: 1.5px solid var(--line); border-radius: 999px;
+  padding: 11px 16px; font-size: 16px; background: var(--card);
+}
+.codein-row input:focus { outline: none; border-color: var(--green-soft); }

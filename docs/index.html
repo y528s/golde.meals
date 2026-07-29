@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>golde. meals — prototype</title>
+<meta name="description" content="A clickable prototype of golde. — meal trains coordinated by a warm, slightly overbearing grandmother." />
+<meta name="theme-color" content="#FAF7F0" />
+<link rel="stylesheet" href="styles.css?v=26" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23075E54'/%3E%3Ctext x='16' y='23' font-family='Georgia,serif' font-size='20' fill='%23FAF7F0' text-anchor='middle'%3Eg%3C/text%3E%3C/svg%3E" />
+</head>
+<body>
+
+  <div class="stage">
+    <div class="stage-aside" aria-hidden="true">
+      <div class="wordmark-lg">golde.</div>
+      <p class="stage-blurb">Golde is a web app that helps you plan meals. Nothing to
+        download, it's all right here.</p>
+      <p class="stage-note">Prototype. Nothing here sends a real message, and nothing is saved.</p>
+    </div>
+
+    <div class="phone-wrap">
+      <div class="phone" id="phone">
+        <div class="statusbar" aria-hidden="true">
+          <span class="sb-time">9:41</span>
+          <span class="sb-right"><span class="sb-bars"></span><span class="sb-wifi"></span><span class="sb-batt"></span></span>
+        </div>
+        <div class="notch" aria-hidden="true"></div>
+
+        <main class="viewport" id="viewport">
+          <section class="surface" id="surface-cover" aria-label="What this is"></section>
+          <section class="surface" id="surface-setup" aria-label="Setting up a meal train"></section>
+          <section class="surface" id="surface-chat" aria-label="golde."></section>
+          <section class="surface" id="surface-board" aria-label="The board"></section>
+        </main>
+
+        <div class="sheet-scrim" id="scrim" hidden></div>
+        <div class="sheet-host" id="sheet-host" role="dialog" aria-modal="true" aria-label="Dialog" hidden></div>
+
+        <button class="demo-fab" id="demo-fab" type="button" aria-label="Open demo controls">
+          <span>demo</span>
+        </button>
+        <div class="toast-host" id="toast-host" aria-live="polite"></div>
+      </div>
+      <p class="phone-caption">Demo device — the real thing lives in WhatsApp.</p>
+    </div>
+  </div>
+
+    <script src="hebcal.js?v=26"></script>
+  <script src="calendar-data.js?v=26"></script>
+  <script src="sync.js?v=26"></script>
+  <script src="app.js?v=26"></script>
+</body>
+</html>
